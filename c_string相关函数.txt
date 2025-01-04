@@ -152,3 +152,29 @@ This is cumbersome to do so if the number of characters (as opposed to bytes) is
 
 调用者需要确保指针非空，以及加上长度偏移后不会访问越界
 const char *s1, s1可以改变指向
+
+```
+// split
+#include <vector>
+#include <regex>
+#include <iostream>
+using namespace std;
+
+void StringSplit(const string &str, const string &split, vector<string> &res) {
+    std::regex reg(split);
+    std::sregex_token_iterator pos(str.begin(), str.end(), reg, -1);
+    std::sregex_token_iterator end;
+    for (; pos != end; ++pos) {
+            res.push_back(pos->str());
+    }
+}
+
+int main() {
+    vector<string> sl;
+    string str("hello       1234    asdf ");
+    StringSplit(str, "\\s+", sl);
+    for (string &s : sl) {
+            cout << s << endl;
+    }
+}
+```
