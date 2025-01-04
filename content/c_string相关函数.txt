@@ -1,0 +1,180 @@
+char *strcpy(char *dest, const char *src)
+{
+	char *tmp = dest;
+
+	while ((*dest++ = *src++) != '\0')
+		/* nothing */;
+	return tmp;
+}
+
+char *strncpy(char *dest, const char *src, size_t count)
+{
+	char *tmp = dest;
+
+	while (count) {
+		if ((*tmp = *src) != 0)
+			src++;
+		tmp++;
+		count--;
+	}
+	return dest;
+}
+
+int strcmp(const char *cs, const char *ct)
+{
+	unsigned char c1, c2;
+
+	while (1) {
+		c1 = *cs++;
+		c2 = *ct++;
+		if (c1 != c2)
+			return c1 < c2 ? -1 : 1;
+		if (!c1)
+			break;
+	}
+	return 0;
+}
+
+int strncmp(const char *cs, const char *ct, size_t count)
+{
+	unsigned char c1, c2;
+
+	while (count) {
+		c1 = *cs++;
+		c2 = *ct++;
+		if (c1 != c2)
+			return c1 < c2 ? -1 : 1;
+		if (!c1)
+			break;
+		count--;
+	}
+	return 0;
+}
+
+size_t strlen(const char *s)
+{
+	const char *sc;
+
+	for (sc = s; *sc != '\0'; ++sc)
+		/* nothing */;
+	return sc - s;
+}
+
+void *memcpy(void *dest, const void *src, size_t count)
+{
+	char *tmp = dest;
+	const char *s = src;
+
+	while (count--)
+		*tmp++ = *s++;
+	return dest;
+}
+
+void *memmove(void *dest, const void *src, size_t count)
+{
+	char *tmp;
+	const char *s;
+
+	if (dest <= src) {
+		tmp = dest;
+		s = src;
+		while (count--)
+			*tmp++ = *s++;
+	} else {
+		tmp = dest;
+		tmp += count;
+		s = src;
+		s += count;
+		while (count--)
+			*--tmp = *--s;
+	}
+	return dest;
+}
+
+/**
+ * strstr - Find the first substring in a %NUL terminated string
+ * @s1: The string to be searched
+ * @s2: The string to search for
+ */
+char *strstr(const char *s1, const char *s2)
+{
+	size_t l1, l2;
+
+	l2 = strlen(s2);
+	if (!l2)
+		return (char *)s1;
+	l1 = strlen(s1);
+	while (l1 >= l2) {
+		l1--;
+		if (!memcmp(s1, s2, l2))
+			return (char *)s1;
+		s1++;
+	}
+	return NULL;
+}
+
+The strlen function returns the length of the string s in bytes. (In other words, it returns the offset of the terminating null byte within the array.)
+
+For example,
+
+strlen ("hello, world")
+    ⇒ 12
+When applied to an array, the strlen function returns the length of the string stored there, not its allocated size. You can get the allocated size of the array that holds a string using the sizeof operator:
+
+char string[32] = "hello, world";
+sizeof (string)
+    ⇒ 32
+strlen (string)
+    ⇒ 12
+But beware, this will not work unless string is the array itself, not a pointer to it. For example:
+
+char string[32] = "hello, world";
+char *ptr = string;
+sizeof (string)
+    ⇒ 32
+sizeof (ptr)
+    ⇒ 4  /* (on a machine with 4 byte pointers) */
+This is an easy mistake to make when you are working with functions that take string arguments; those arguments are always pointers, not arrays.
+
+It must also be noted that for multibyte encoded strings the return value does not have to correspond to the number of characters in the string. To get this value the string can be converted to wide characters and wcslen can be used or something like the following code can be used:
+
+/* The input is in string.
+   The length is expected in n.  */
+{
+  mbstate_t t;
+  char *scopy = string;
+  /* In initial state.  */
+  memset (&t, '\0', sizeof (t));
+  /* Determine number of characters.  */
+  n = mbsrtowcs (NULL, &scopy, strlen (scopy), &t);
+}
+This is cumbersome to do so if the number of characters (as opposed to bytes) is needed often it is better to work with wide characters.
+
+调用者需要确保指针非空，以及加上长度偏移后不会访问越界
+const char *s1, s1可以改变指向
+
+```
+// split
+#include <vector>
+#include <regex>
+#include <iostream>
+using namespace std;
+
+void StringSplit(const string &str, const string &split, vector<string> &res) {
+    std::regex reg(split);
+    std::sregex_token_iterator pos(str.begin(), str.end(), reg, -1);
+    std::sregex_token_iterator end;
+    for (; pos != end; ++pos) {
+            res.push_back(pos->str());
+    }
+}
+
+int main() {
+    vector<string> sl;
+    string str("hello       1234    asdf ");
+    StringSplit(str, "\\s+", sl);
+    for (string &s : sl) {
+            cout << s << endl;
+    }
+}
+```
