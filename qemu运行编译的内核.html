@@ -1,0 +1,75 @@
+<ul>
+<li>qemu组件</li>
+</ul>
+<pre><code>sudo apt install qemu-system-aarch64</code></pre>
+<ul>
+<li>交叉编译器</li>
+</ul>
+<pre><code>sudo apt install gcc-aarch64-linux-gnu</code></pre>
+<ul>
+<li>编译kernel</li>
+</ul>
+<pre><code>make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- defconfig
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j8</code></pre>
+<ul>
+<li>编译busybox</li>
+</ul>
+<pre><code>wget https://busybox.net/downloads/busybox-1.36.1.tar.bz2
+tar -xvf busybox-1.36.1.tar.bz2
+cd busybox-1.36.1
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- menuconfig
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- install</code></pre>
+<ul>
+<li>构建根文件系统 在生成的_install文件夹下创建系统所需的目录。并给启动程序创建一个软连接。</li>
+</ul>
+<pre><code>cd _install
+mkdir {proc,sys,dev,etc,etc/init.d,lib,tmp}
+ln -sf linuxrc init</code></pre>
+<ul>
+<li>复制动态库：</li>
+</ul>
+<pre><code>cd ..
+cp /usr/aarch64-linux-gnu/lib/ld-linux-aarch64.so.1 _install/lib/
+cp /usr/aarch64-linux-gnu/lib/libc.so.6 _install/lib/
+cp /usr/aarch64-linux-gnu/lib/libm.so.6 _install/lib/
+cp /usr/aarch64-linux-gnu/lib/libresolv.so.2 _install/lib/</code></pre>
+<ul>
+<li>创建配置文件：</li>
+</ul>
+<pre><code>cat &gt; _install/etc/init.d/rcS &lt;&lt;EOF
+#!/bin/sh
+mount -t proc none /proc
+mount -t sysfs none /sys
+/sbin/mdev -s
+ifconfig lo up
+EOF
+chmod +x _install/etc/init.d/rcS</code></pre>
+<pre><code>cat &gt; _install/etc/inittab &lt;&lt;EOF
+# /etc/inittab
+::sysinit:/etc/init.d/rcS
+::askfirst:-/bin/sh
+::ctrlaltdel:/sbin/reboot
+::shutdown:/bin/umount -a -r
+EOF</code></pre>
+<p>使用cpio生成根文件系统</p>
+<pre><code>cd _install
+find . | cpio -o --format=newc &gt; ../initramfs</code></pre>
+<p>系统启动脚本：</p>
+<pre><code>cd ..
+cat &gt; run.sh &lt;&lt;EOF
+qemu-system-aarch64 \
+    -M virt \
+    -cpu cortex-a72 \
+    -machine type=virt \
+    -kernel Image \
+    -nographic \
+    -m 512M \
+    -smp 4 \
+    -append &quot;console=ttyAMA0&quot; \
+    -initrd initramfs \
+  -netdev tap,id=hn2 \
+  -device e1000,netdev=hn2
+EOF</code></pre>
+<pre><code>cp /path/to/kernel/arch/arm64/boot/Image ./
+ls
+Image  initramfs  run.sh</code></pre>
