@@ -1,0 +1,18 @@
+alias apt-get="sudo apt-get"
+alias updatey="sudo apt-get --yes"
+alias update="sudo apt-get update && sudo apt-get upgrade"
+
+alias rm='rm -I --preserve-root'
+#alias mv='mv -i'
+#alias cp='cp -i'
+#alias ln='ln -i'
+
+alias chmod='chmod --preserve-root'
+
+alias mkdir='mkdir -pv'
+
+alias cd..='cd ..'
+alias ..='cd ..'
+alias ...='cd ../../../'
+
+alias ll='ls -la'

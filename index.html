@@ -25,7 +25,45 @@
     <span class='folder' onclick='toggleFolder(this)'>📁 config</span>
     <div class='nested'>
     <ul>
-      <li><a href="./config/vimrc-linux">📄 vimrc-linux</a></li>
+      <li>
+        <span class='folder' onclick='toggleFolder(this)'>📁 nvim</span>
+        <div class='nested'>
+        <ul>
+          <li>
+            <span class='folder' onclick='toggleFolder(this)'>📁 lua</span>
+            <div class='nested'>
+            <ul>
+              <li><a href="./config/nvim/lua/configs.lua">📄 configs.lua</a></li>
+              <li><a href="./config/nvim/lua/keymaps.lua">📄 keymaps.lua</a></li>
+              <li><a href="./config/nvim/lua/plugins.lua">📄 plugins.lua</a></li>
+              <li><a href="./config/nvim/lua/scripts.lua">📄 scripts.lua</a></li>
+            </ul>
+            </div>
+          </li>
+          <li>
+            <span class='folder' onclick='toggleFolder(this)'>📁 snapshots</span>
+            <div class='nested'>
+            <ul>
+            </ul>
+            </div>
+          </li>
+          <li>
+            <span class='folder' onclick='toggleFolder(this)'>📁 snippets</span>
+            <div class='nested'>
+            <ul>
+              <li><a href="./config/nvim/snippets/c.snippets">📄 c.snippets</a></li>
+              <li><a href="./config/nvim/snippets/xxx">📄 xxx</a></li>
+            </ul>
+            </div>
+          </li>
+          <li><a href="./config/nvim/init.lua">📄 init.lua</a></li>
+          <li><a href="./config/nvim/lazy-lock.json">📄 lazy-lock.json</a></li>
+        </ul>
+        </div>
+      </li>
+      <li><a href="./config/bash_aliases.txt">📄 bash_aliases.txt</a></li>
+      <li><a href="./config/tmux.conf">📄 tmux.conf</a></li>
+      <li><a href="./config/vimrc-linux.txt">📄 vimrc-linux.txt</a></li>
     </ul>
     </div>
   </li>
@@ -37,6 +75,28 @@
     </div>
   </li>
   <li>
+    <span class='folder' onclick='toggleFolder(this)'>📁 cpp</span>
+    <div class='nested'>
+    <ul>
+      <li>
+        <span class='folder' onclick='toggleFolder(this)'>📁 STL</span>
+        <div class='nested'>
+        <ul>
+        </ul>
+        </div>
+      </li>
+      <li>
+        <span class='folder' onclick='toggleFolder(this)'>📁 八股文</span>
+        <div class='nested'>
+        <ul>
+        </ul>
+        </div>
+      </li>
+      <li><a href="./cpp/线程私有数据.txt">📄 线程私有数据.txt</a></li>
+    </ul>
+    </div>
+  </li>
+  <li>
     <span class='folder' onclick='toggleFolder(this)'>📁 html</span>
     <div class='nested'>
     <ul>
@@ -44,6 +104,13 @@
       <li><a href="./html/ebpf.html">📄 ebpf.html</a></li>
       <li><a href="./html/qemu运行编译的内核.html">📄 qemu运行编译的内核.html</a></li>
       <li><a href="./html/交叉编译libbpf-bootstrap.html">📄 交叉编译libbpf-bootstrap.html</a></li>
+    </ul>
+    </div>
+  </li>
+  <li>
+    <span class='folder' onclick='toggleFolder(this)'>📁 other</span>
+    <div class='nested'>
+    <ul>
     </ul>
     </div>
   </li>
