@@ -36,6 +36,12 @@ find . -type f -name "*.txt" | while read -r file; do
     echo "        <li><a href=\"$file\">$filename</a></li>" >> index.html
 done
 
+# Find all .zip files and add them to the index.html file
+find . -type f -name "*.zip" | while read -r file; do
+    filename=$(basename "$file")
+    echo "        <li><a href=\"$file\">$filename</a></li>" >> index.html
+done
+
 echo "    </ul>" >> index.html
 echo "</body>" >> index.html
 echo "</html>" >> index.html
