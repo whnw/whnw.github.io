@@ -1,49 +1,75 @@
 #!/bin/bash
 
+# Function to recursively scan directories and generate index
+generate_index() {
+    local current_dir="$1"
+    local indent="$2"
 
-# Create the html directory if it does not exist
-mkdir -p html
+    echo "${indent}<ul>" >> index.html
 
-# Delete all .html files in the html directory
-rm -f html/*.html
+    # First, process directories
+    for entry in "$current_dir"/.* "$current_dir"/*; do
+        if [ -d "$entry" ] && [ "$entry" != "$current_dir/." ] && [ "$entry" != "$current_dir/.." ] && [ "$(basename "$entry")" != ".git" ]; then
+            # If entry is a directory and not . or .. or .git, add it as a list level menu with folding functionality
+            echo "${indent}  <li>" >> index.html
+            echo "${indent}    <span class='folder' onclick='toggleFolder(this)'>📁 $(basename "$entry")</span>" >> index.html
+            echo "${indent}    <div class='nested'>" >> index.html
+            generate_index "$entry" "    $indent"
+            echo "${indent}    </div>" >> index.html
+            echo "${indent}  </li>" >> index.html
+        fi
+    done
 
-# Create or overwrite the index.html file
-echo "<!DOCTYPE html>" > index.html
-echo "<html lang=\"en\">" >> index.html
-echo "<head>" >> index.html
-echo "    <meta charset=\"UTF-8\">" >> index.html
-echo "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" >> index.html
-echo "    <title>Index of Markdown and Text Files</title>" >> index.html
-echo "</head>" >> index.html
-echo "<body>" >> index.html
-echo "    <h1>Index of Markdown and Text Files</h1>" >> index.html
-echo "    <ul>" >> index.html
+    # Then, process files
+    for entry in "$current_dir"/.* "$current_dir"/*; do
+        if [ -f "$entry" ]; then
+            # If entry is a file and does not end with .md, add it to the list
+            case "$entry" in
+                *.md)
+                    # Skip markdown files
+                    ;;
+                *)
+                    echo "${indent}  <li>📄 $(basename "$entry")</li>" >> index.html
+                    ;;
+            esac
+        fi
+    done
 
-# Find all .md files, convert them to .html, move to html directory, and add them to the index.html file
-find . -type f -name "*.md" | while read -r file; do
-    # Convert .md file to .html using pandoc
-    html_file="html/$(basename "${file%.md}.html")"
-    pandoc "$file" -o "$html_file"
+    echo "${indent}</ul>" >> index.html
+}
 
-    # Add the .html file link to index.html
-    filename=$(basename "$html_file")
-    echo "        <li><a href=\"$html_file\">$filename</a></li>" >> index.html
-done
+# Starting point of the script
+root_dir="."  # You can change this to any directory you want to start from
 
-# Find all .txt files and add them to the index.html file
-find . -type f -name "*.txt" | while read -r file; do
-    filename=$(basename "$file")
-    echo "        <li><a href=\"$file\">$filename</a></li>" >> index.html
-done
+# Output the HTML header with styles and script for folding and unfolding
+cat <<EOF > index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Index</title>
+    <style>
+        ul { list-style-type: none; }
+        .folder { cursor: pointer; }
+        .nested { display: none; }
+        .active { display: block; }
+    </style>
+</head>
+<body>
+<h1>Directory Index</h1>
+<script>
+    function toggleFolder(element) {
+        element.parentElement.querySelector(".nested").classList.toggle("active");
+    }
+</script>
+EOF
 
-# Find all .zip files and add them to the index.html file
-find . -type f -name "*.zip" | while read -r file; do
-    filename=$(basename "$file")
-    echo "        <li><a href=\"$file\">$filename</a></li>" >> index.html
-done
+# Generate the index
+generate_index "$root_dir" ""
 
-echo "    </ul>" >> index.html
-echo "</body>" >> index.html
-echo "</html>" >> index.html
-
-echo "index.html has been generated successfully."
+# Output the HTML footer
+cat <<EOF >> index.html
+</body>
+</html>
+EOF

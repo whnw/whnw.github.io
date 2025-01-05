@@ -178,3 +178,10 @@ int main() {
     }
 }
 ```
+
+实现分割的时候要注意最后一个单词，结尾也是一个分割边界，不能只判断分割符作为分割边界
+
+isalpha 判断是否为字母
+isalnum 0-9a-zA-Z
+isdigit 0-9
+islower

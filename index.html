@@ -3,19 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Index of Markdown and Text Files</title>
+    <title>Index</title>
+    <style>
+        ul { list-style-type: none; }
+        .folder { cursor: pointer; }
+        .nested { display: none; }
+        .active { display: block; }
+    </style>
 </head>
 <body>
-    <h1>Index of Markdown and Text Files</h1>
+<h1>Directory Index</h1>
+<script>
+    function toggleFolder(element) {
+        element.parentElement.querySelector(".nested").classList.toggle("active");
+    }
+</script>
+<ul>
+  <li>
+    <span class='folder' onclick='toggleFolder(this)'>📁 config</span>
+    <div class='nested'>
     <ul>
-        <li><a href="html/README.html">README.html</a></li>
-        <li><a href="html/qemu运行编译的内核.html">qemu运行编译的内核.html</a></li>
-        <li><a href="html/ebpf.html">ebpf.html</a></li>
-        <li><a href="html/交叉编译libbpf-bootstrap.html">交叉编译libbpf-bootstrap.html</a></li>
-        <li><a href="./c_string相关函数.txt">c_string相关函数.txt</a></li>
-        <li><a href="./create_github.io.txt">create_github.io.txt</a></li>
-        <li><a href="./hello.txt">hello.txt</a></li>
-        <li><a href="./nat46.zip">nat46.zip</a></li>
+      <li>📄 .vimrc</li>
     </ul>
+    </div>
+  </li>
+  <li>
+    <span class='folder' onclick='toggleFolder(this)'>📁 content</span>
+    <div class='nested'>
+    <ul>
+    </ul>
+    </div>
+  </li>
+  <li>
+    <span class='folder' onclick='toggleFolder(this)'>📁 html</span>
+    <div class='nested'>
+    <ul>
+      <li>📄 README.html</li>
+      <li>📄 ebpf.html</li>
+      <li>📄 qemu运行编译的内核.html</li>
+      <li>📄 交叉编译libbpf-bootstrap.html</li>
+    </ul>
+    </div>
+  </li>
+  <li>📄 _config.yml</li>
+  <li>📄 c_string相关函数.txt</li>
+  <li>📄 create_github.io.txt</li>
+  <li>📄 generate_index.sh</li>
+  <li>📄 hello.txt</li>
+  <li>📄 index.html</li>
+  <li>📄 nat46.zip</li>
+  <li>📄 old_generate.sh</li>
+  <li>📄 正则表达式手册.html</li>
+</ul>
 </body>
 </html>
