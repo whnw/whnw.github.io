@@ -9,6 +9,8 @@
         .folder { cursor: pointer; }
         .nested { display: none; }
         .active { display: block; }
+        a { text-decoration: none; color: black; }
+        a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -23,7 +25,7 @@
     <span class='folder' onclick='toggleFolder(this)'>📁 config</span>
     <div class='nested'>
     <ul>
-      <li>📄 .vimrc</li>
+      <li><a href="./config/.vimrc">📄 .vimrc</a></li>
     </ul>
     </div>
   </li>
@@ -38,22 +40,22 @@
     <span class='folder' onclick='toggleFolder(this)'>📁 html</span>
     <div class='nested'>
     <ul>
-      <li>📄 README.html</li>
-      <li>📄 ebpf.html</li>
-      <li>📄 qemu运行编译的内核.html</li>
-      <li>📄 交叉编译libbpf-bootstrap.html</li>
+      <li><a href="./html/README.html">📄 README.html</a></li>
+      <li><a href="./html/ebpf.html">📄 ebpf.html</a></li>
+      <li><a href="./html/qemu运行编译的内核.html">📄 qemu运行编译的内核.html</a></li>
+      <li><a href="./html/交叉编译libbpf-bootstrap.html">📄 交叉编译libbpf-bootstrap.html</a></li>
     </ul>
     </div>
   </li>
-  <li>📄 _config.yml</li>
-  <li>📄 c_string相关函数.txt</li>
-  <li>📄 create_github.io.txt</li>
-  <li>📄 generate_index.sh</li>
-  <li>📄 hello.txt</li>
-  <li>📄 index.html</li>
-  <li>📄 nat46.zip</li>
-  <li>📄 old_generate.sh</li>
-  <li>📄 正则表达式手册.html</li>
+  <li><a href="./_config.yml">📄 _config.yml</a></li>
+  <li><a href="./c_string相关函数.txt">📄 c_string相关函数.txt</a></li>
+  <li><a href="./create_github.io.txt">📄 create_github.io.txt</a></li>
+  <li><a href="./generate_index.sh">📄 generate_index.sh</a></li>
+  <li><a href="./hello.txt">📄 hello.txt</a></li>
+  <li><a href="./index.html">📄 index.html</a></li>
+  <li><a href="./nat46.zip">📄 nat46.zip</a></li>
+  <li><a href="./old_generate.sh">📄 old_generate.sh</a></li>
+  <li><a href="./正则表达式手册.html">📄 正则表达式手册.html</a></li>
 </ul>
 </body>
 </html>

@@ -29,7 +29,7 @@ generate_index() {
                     # Skip markdown files
                     ;;
                 *)
-                    echo "${indent}  <li>📄 $(basename "$entry")</li>" >> index.html
+                    echo "${indent}  <li><a href=\"$entry\">📄 $(basename "$entry")</a></li>" >> index.html
                     ;;
             esac
         fi
@@ -54,6 +54,8 @@ cat <<EOF > index.html
         .folder { cursor: pointer; }
         .nested { display: none; }
         .active { display: block; }
+        a { text-decoration: none; color: black; }
+        a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
