@@ -1,0 +1,37 @@
+<h1 id="qemu运行交叉编译的libbpf_bootstrap程序">qemu运行交叉编译的libbpf_bootstrap程序</h1>
+<p>使用的虚拟机Ubuntu20.04，实验的内核版本5.15.1</p>
+<h2 id="编译内核">1. 编译内核</h2>
+<p><a href="https://github.com/snrainw/rwk.github.io/blob/main/test.md">编译并运行内核</a></p>
+<p>为了运行example/c下的程序，还要开启一些内核选项，在命令<code>make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- defconfig</code>后执行<code>make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- menuconfig</code></p>
+<ul>
+<li><p>BPF系列</p></li>
+<li><p>CONFIG_BPF=y CONFIG_HAVE_EBPF_JIT=y CONFIG_ARCH_WANT_DEFAULT_BPF_JIT=y CONFIG_BPF_SYSCALL=y CONFIG_BPF_JIT=y CONFIG_BPF_JIT_ALWAYS_ON=y CONFIG_BPF_JIT_DEFAULT_ON=y</p>
+<p>CONFIG_USERMODE_DRIVER=y CONFIG_BPF_PRELOAD=y CONFIG_BPF_PRELOAD_UMD=y</p></li>
+<li><p>FTRACE系列</p></li>
+<li><p>CONFIG_FTRACE=y</p>
+<p>CONFIG_FUNCTION_TRACER=y CONFIG_FUNCTION_GRAPH_TRACER=y CONFIG_DYNAMIC_FTRACE=y CONFIG_DYNAMIC_FTRACE_WITH_REGS=y CONFIG_FUNCTION_PROFILER=y CONFIG_STACK_TRACER=y</p>
+<p>CONFIG_SCHED_TRACER=y</p>
+<p>CONFIG_FTRACE_SYSCALLS=y</p></li>
+<li><p>BTF系列</p></li>
+<li><p>CONFIG_DEBUG_INFO_BTF=y CONFIG_PAHOLE_HAS_SPLIT_BTF=y CONFIG_DEBUG_INFO_BTF_MODULES=y</p></li>
+</ul>
+<p>另外kprobe相关的也勾选上 CONFIG_KPROBES=y, CONFIG_HAVE_KPROBES=y, CONFIG_KPROBE_EVENTS=y</p>
+<p>多勾选几个无伤大雅，然后再编译一遍内核。快速定位到子菜单：进入menuconfig界面后按<code>/</code>，然后把选项粘贴进去，按下数字如1进行跳转，后面就可以一个个按<code>y</code>进行勾选了。</p>
+<p><a href="https://github.com/snrainw/rwk.github.io/blob/main/.config">或者直接复制.config到kernel目录</a></p>
+<h2 id="编译examplec下的程序">2. 编译example/c下的程序</h2>
+<p><a href="https://github.com/snrainw/rwk.github.io/blob/main/tmp.md">见链接</a></p>
+<h2 id="运行">3. 运行</h2>
+<p>在执行<code>sudo sh run.sh</code>之前先进行如下操作</p>
+<ul>
+<li>新编译的内核Image复制到run.sh同目录</li>
+<li>example/c下程序如bootstrap复制到_install/bin下</li>
+<li>重新制作initramfs</li>
+</ul>
+<p>运行结果如下（还是有一些错误打印，不过可以成功运行了）</p>
+<pre><code>~ # bootstrap &amp;
+~ # ls
+13:34:58 EXEC  ls               127     122     /bin/ls
+bin      etc      lib      proc     sbin     tmp
+dev      init     linuxrc  root     sys      usr
+13:34:58 EXIT  ls               127     122     [0] (38ms)
+~ #</code></pre>

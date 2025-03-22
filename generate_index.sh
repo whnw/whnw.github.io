@@ -67,6 +67,22 @@ cat <<EOF > index.html
 </script>
 EOF
 
+# 使用 find 命令递归查找所有 .md 文件
+find "$root_dir" -type f -name "*.md" | while read -r file; do
+    # 获取文件所在目录
+    dir=$(dirname "$file")
+    
+    # 获取文件名（不含扩展名）
+    filename=$(basename "$file" .md)
+    
+    # 使用 pandoc 将 .md 文件转换为 .html 文件，保存在同一目录下
+    pandoc "$file" -o "$dir/$filename.html"
+    
+    # 输出转换结果
+    echo "Converted $file to $dir/$filename.html"
+done
+
+
 # Generate the index
 generate_index "$root_dir" ""
 

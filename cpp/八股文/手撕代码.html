@@ -1,0 +1,1433 @@
+<h1 id="线程池">线程池</h1>
+<p><strong>线程池有三个类：</strong></p>
+<ol style="list-style-type: decimal">
+<li>任务类</li>
+<li>任务队列</li>
+<li>线程池</li>
+</ol>
+<p><strong>主要组成部分是三个：</strong></p>
+<ol style="list-style-type: decimal">
+<li><p>任务队列，存储需要分配的任务，用队列实现</p></li>
+<li><p>工作线程。</p></li>
+</ol>
+<p>工作线程不停地读取任务队列，读取里面的任务并处理。</p>
+<p>如果队列为空，工作线程将会被阻塞，条件变量</p>
+<p>队列不为空，唤醒线程，工作</p>
+<ol start="3" style="list-style-type: decimal">
+<li>管理线程。</li>
+</ol>
+<p>周期性的对任务队列中的任务数量以及处于忙碌状态的工作线程个数进行检测，当任务过多就适当创建一些新线程，当任务过少就销毁一些线程。</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="ot">#include&lt;pthread.h&gt;</span>
+<span class="ot">#include&lt;queue&gt;</span>
+<span class="ot">#include&lt;iostream&gt;</span>
+<span class="ot">#include&lt;string.h&gt;</span>
+<span class="ot">#include&lt;exception&gt;</span>
+<span class="ot">#include&lt;unistd.h&gt;</span>
+
+<span class="dt">const</span> <span class="dt">int</span> NUMBER = <span class="dv">2</span>;
+
+<span class="kw">using</span> callback = <span class="dt">void</span>(*)(<span class="dt">void</span>* arg);
+
+
+<span class="kw">class</span> Task{
+<span class="kw">private</span>:
+<span class="kw">public</span>:
+    callback fun;
+    <span class="dt">void</span>* arg;
+<span class="kw">public</span>:
+    Task(){
+        fun = <span class="kw">nullptr</span>;
+        arg = <span class="kw">nullptr</span>;
+    }
+    Task(callback f, <span class="dt">void</span>* arg){
+        fun = f;
+        <span class="kw">this</span>-&gt;arg = arg;
+    }
+};
+
+<span class="kw">class</span> Task_queue
+{
+<span class="kw">private</span>:
+    pthread_mutex_t m_mutex;
+    std::queue&lt;Task&gt; m_queue;
+<span class="kw">public</span>:
+    Task_queue();
+    ~Task_queue();
+
+    <span class="co">//添加任务</span>
+    <span class="dt">void</span> add_task(Task&amp; task);
+    <span class="dt">void</span> add_task(callback f, <span class="dt">void</span>* arg);
+
+    <span class="co">//取出任务</span>
+    Task&amp; get_task();
+
+    <span class="dt">int</span> task_size(){
+        <span class="kw">return</span> m_queue.size();
+    }
+};
+
+<span class="kw">class</span> Thread_pool{
+<span class="kw">private</span>:
+    pthread_mutex_t m_mutex_pool;
+    pthread_cond_t m_not_empty;     <span class="co">//条件变量，用来唤醒等待的线程，假设队列是无限的</span>
+    pthread_t* thread_compose;
+    pthread_t m_manger_thread;
+    Task_queue* m_task_queue;
+    <span class="dt">int</span> m_min_num;                  <span class="co">//最小线程数</span>
+    <span class="dt">int</span> m_max_num;                  <span class="co">//最大线程数</span>
+    <span class="dt">int</span> m_busy_num;                 <span class="co">//工作的线程数</span>
+    <span class="dt">int</span> m_live_num;                 <span class="co">//存活的线程数一</span>
+    <span class="dt">int</span> m_destory_num;              <span class="co">//待销毁的线程数</span>
+    <span class="dt">bool</span> shutdown = <span class="kw">false</span>;          <span class="co">//是否销毁</span>
+    
+    <span class="co">//在使用pthread_create时候，第三个参数的函数必须是静态的</span>
+    <span class="co">//要在静态函数中使用类的成员(成员函数和变量)只能通过两种方式</span>
+    <span class="co">//1.通过类的静态对象，单例模式中使用类的全局唯一实例来访问类成员</span>
+    <span class="co">//2.类对象作为参数传递给该静态函数中</span>
+    <span class="co">//管理线程的任务函数，形参是线程池类型的参数</span>
+    <span class="dt">static</span> <span class="dt">void</span>* manager(<span class="dt">void</span>* arg);
+    <span class="co">//工作线程的任务函数</span>
+    <span class="dt">static</span> <span class="dt">void</span>* worker(<span class="dt">void</span>* arg);
+    <span class="co">//销毁线程池</span>
+    <span class="dt">void</span> destory_thread();
+<span class="kw">public</span>:
+    Thread_pool(<span class="dt">int</span> min, <span class="dt">int</span> max);
+    ~Thread_pool();
+
+    <span class="dt">void</span> add_task(Task task);
+    <span class="dt">int</span> get_busy_num();
+    <span class="dt">int</span> get_live_num();
+};
+
+
+Task_queue::Task_queue()
+{
+    pthread_mutex_init(&amp;m_mutex, <span class="kw">nullptr</span>);
+}
+
+
+Task_queue::~Task_queue()
+{
+    pthread_mutex_destroy(&amp;m_mutex);
+}
+
+
+<span class="dt">void</span> Task_queue::add_task(Task&amp; task){
+    pthread_mutex_lock(&amp;m_mutex);
+    m_queue.push(task);
+    pthread_mutex_unlock(&amp;m_mutex);
+}
+
+<span class="dt">void</span> Task_queue::add_task(callback f, <span class="dt">void</span>* arg){
+    pthread_mutex_lock(&amp;m_mutex);
+    Task t(f, arg);
+    m_queue.push(t);
+    pthread_mutex_unlock(&amp;m_mutex);
+}
+
+
+Task&amp; Task_queue::get_task(){
+    Task t;
+    pthread_mutex_lock(&amp;m_mutex);
+    <span class="kw">if</span>(m_queue.size() &gt; <span class="dv">0</span>){
+        t = m_queue.front();
+        m_queue.pop();
+    }
+    pthread_mutex_unlock(&amp;m_mutex);
+    <span class="kw">return</span> t;
+}
+
+Thread_pool::Thread_pool(<span class="dt">int</span> min, <span class="dt">int</span> max){
+    <span class="co">//实例化任务队列</span>
+    m_task_queue = <span class="kw">new</span> Task_queue;
+    <span class="co">//do while的好处，但是c++有析构，所以不太用的上</span>
+    <span class="kw">do</span>
+    {
+        <span class="co">//初始化线程池</span>
+        m_min_num = min;
+        m_max_num = max;
+        m_busy_num = <span class="dv">0</span>;
+        m_live_num = min;
+
+        <span class="co">//根据最大上限给线程数组分配内存</span>
+        thread_compose = <span class="kw">new</span> pthread_t[m_max_num];
+        <span class="kw">if</span>(thread_compose == <span class="kw">nullptr</span>){
+            std::cout&lt;&lt;<span class="st">&quot;create thread array fail~</span><span class="ch">\n</span><span class="st">&quot;</span>;
+            <span class="kw">break</span>;
+        }
+        <span class="co">//初始化线程数组</span>
+        memset(&amp;thread_compose, <span class="dv">0</span>, <span class="kw">sizeof</span>(thread_compose) * m_max_num);
+
+        <span class="co">//初始化互斥锁和条件变量</span>
+        <span class="kw">if</span>(pthread_mutex_init(&amp;m_mutex_pool, <span class="kw">nullptr</span>) != <span class="dv">0</span>){
+            <span class="kw">throw</span>::std::exception();
+        }
+        <span class="kw">if</span>(pthread_cond_init(&amp;m_not_empty, <span class="kw">nullptr</span>) != <span class="dv">0</span>){
+            <span class="kw">throw</span>::std::exception();
+        }
+
+        <span class="co">//创建管理者线程</span>
+        pthread_create(&amp;m_manger_thread, <span class="kw">nullptr</span>, manager, <span class="kw">this</span>);
+
+        <span class="co">//创建工作线程</span>
+        <span class="kw">for</span>(<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; m_min_num; i++){
+            <span class="co">//传this指针，才能访问类内成员函数</span>
+            pthread_create(&amp;thread_compose[i], <span class="kw">nullptr</span>, worker, <span class="kw">this</span>);
+        }
+    } <span class="kw">while</span> (<span class="dv">0</span>);
+    
+}
+
+Thread_pool::~Thread_pool(){
+    shutdown = <span class="dv">1</span>;
+    <span class="co">//销毁管理者线程</span>
+    pthread_join(m_manger_thread, NULL);
+    <span class="co">//唤醒所有消费者线程</span>
+    <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; m_live_num; ++i)
+    {   <span class="co">//signal是唤醒某一个，broadcast是唤醒所有，但是还是要抢一把锁，所以都一样</span>
+        pthread_cond_signal(&amp;m_not_empty);
+    }
+
+    <span class="kw">if</span>(m_task_queue){
+        <span class="kw">delete</span> m_task_queue;
+    }
+    <span class="kw">if</span>(thread_compose){
+        <span class="kw">delete</span> [] thread_compose;
+    }
+    pthread_mutex_destroy(&amp;m_mutex_pool);
+    pthread_cond_destroy(&amp;m_not_empty);
+}
+
+<span class="dt">void</span> Thread_pool::add_task(Task task){
+    <span class="kw">if</span>(shutdown)
+    {   
+        std::cout&lt;&lt;<span class="st">&quot;the thread pool will destory!</span><span class="ch">\n</span><span class="st">&quot;</span>;
+        <span class="kw">return</span>;
+    }
+    <span class="co">//添加任务不需要加锁，因为任务队列中有锁</span>
+    m_task_queue-&gt;add_task(task);
+    <span class="co">//添加完任务就要唤醒工作线程取任务</span>
+    pthread_cond_signal(&amp;m_not_empty);
+}
+
+<span class="dt">int</span> Thread_pool::get_busy_num(){
+    <span class="dt">int</span> busy_num = <span class="dv">0</span>;
+    pthread_mutex_lock(&amp;m_mutex_pool);
+    busy_num = m_busy_num;
+    pthread_mutex_unlock(&amp;m_mutex_pool);
+    <span class="kw">return</span> busy_num;
+}
+
+<span class="dt">int</span> Thread_pool::get_live_num(){
+    <span class="dt">int</span> live_num = <span class="dv">0</span>;
+    pthread_mutex_lock(&amp;m_mutex_pool);
+    live_num = m_live_num;
+    pthread_mutex_unlock(&amp;m_mutex_pool);
+    <span class="kw">return</span> live_num;
+}
+
+<span class="co">//管理线程任务函数</span>
+<span class="co">//主要任务：不断检测工作线程数量，存活线程的数量，然后再决定增加还是删除</span>
+<span class="dt">void</span>* Thread_pool::manager(<span class="dt">void</span>* arg){
+    Thread_pool* pool = <span class="kw">static_cast</span>&lt;Thread_pool*&gt;(arg);
+    <span class="kw">while</span>(pool-&gt;shutdown){
+        <span class="co">//每五秒检测一次</span>
+        sleep(<span class="dv">5</span>);
+
+        <span class="co">//取出线程数量</span>
+        pthread_mutex_lock(&amp;pool-&gt;m_mutex_pool);
+        <span class="dt">int</span> queue_size = pool-&gt;m_task_queue-&gt;task_size();
+        <span class="dt">int</span> live_size = pool-&gt;m_live_num;
+        <span class="dt">int</span> busy_size = pool-&gt;m_busy_num;
+        pthread_mutex_unlock(&amp;pool-&gt;m_mutex_pool);
+
+        <span class="co">//创建线程，最多创建两个</span>
+        <span class="kw">if</span>(queue_size &gt; live_size &amp;&amp; live_size &lt;pool-&gt;m_max_num){
+            pthread_mutex_lock(&amp;pool-&gt;m_mutex_pool);
+            <span class="dt">int</span> count = <span class="dv">0</span>;
+            <span class="kw">for</span>(<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; pool-&gt;m_max_num &amp;&amp; count &lt; NUMBER 
+                &amp;&amp; pool-&gt;m_live_num &lt; pool-&gt;m_max_num; i++){
+                    <span class="co">//之前memset了</span>
+                    <span class="kw">if</span>(pool-&gt;thread_compose[i] == <span class="dv">0</span>){
+                        pthread_create(&amp;pool-&gt;thread_compose[i], <span class="kw">nullptr</span>, worker, pool);
+                        count++;
+                        pool-&gt;m_live_num++;
+                    }
+            }
+            pthread_mutex_unlock(&amp;pool-&gt;m_mutex_pool);
+        }
+
+        <span class="co">//销毁多余的线程</span>
+        <span class="co">//判断条件：忙线程*2 &lt; 存活的线程 &amp;&amp; 存活的线程数 &gt; 最小线程数</span>
+        <span class="kw">if</span>(<span class="dv">2</span>*busy_size &lt; live_size &amp;&amp; live_size &gt; pool-&gt;m_min_num){
+            pthread_mutex_lock(&amp;pool-&gt;m_mutex_pool);
+            pool-&gt;m_destory_num = NUMBER;
+            pthread_mutex_unlock(&amp;pool-&gt;m_mutex_pool);
+            <span class="co">//让工作线程自杀——唤醒但没事儿干就自杀，定义在worker里面</span>
+            <span class="co">//没事儿干的线程被阻塞了，阻塞在m_not_empty()条件变量上</span>
+            <span class="co">//唤醒后的线程就自己退出了，代码在worker里面</span>
+            <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; NUMBER; ++i)
+            {
+                pthread_cond_signal(&amp;pool-&gt;m_not_empty);
+            }
+        }
+    }
+    <span class="kw">return</span> <span class="kw">nullptr</span>;
+}
+
+<span class="co">//工作线程任务函数</span>
+<span class="dt">void</span>* Thread_pool::worker(<span class="dt">void</span>* arg){
+    Thread_pool* pool = <span class="kw">static_cast</span>&lt;Thread_pool*&gt;(arg);
+    <span class="co">//工作线程一直不停工作</span>
+    <span class="kw">while</span>(<span class="kw">true</span>){
+        <span class="co">//当线程访问任务队列的时候加锁</span>
+        pthread_mutex_lock(&amp;pool-&gt;m_mutex_pool);
+        <span class="co">//判断工作队列是否为空，为空阻塞线程</span>
+        <span class="kw">while</span>(pool-&gt;m_task_queue-&gt;task_size() == <span class="dv">0</span> &amp;&amp; pool-&gt;shutdown == <span class="dv">1</span>){
+            std::cout&lt;&lt;<span class="st">&quot;thread &quot;</span>&lt;&lt;std::to_string(pthread_self())&lt;&lt;<span class="st">&quot;waiting...</span><span class="ch">\n</span><span class="st">&quot;</span>;
+            <span class="co">//将调用线程放入条件变量的等待队列中</span>
+            pthread_cond_wait(&amp;pool-&gt;m_not_empty, &amp;pool-&gt;m_mutex_pool);
+            
+            <span class="co">//解除阻塞之后判断是否要销毁线程</span>
+            <span class="co">//由于管理线程中满足线程销毁条件了，就通过条件变量唤醒线程</span>
+            <span class="co">//然后由于唤醒的线程是空闲的即任务队列中没东西，如果有东西就不会空闲，</span>
+            <span class="co">//不会满足manager线程中销毁线程的条件</span>
+            <span class="kw">if</span>(pool-&gt;m_destory_num &gt; <span class="dv">0</span>){
+                pool-&gt;m_destory_num--;
+                <span class="kw">if</span>(pool-&gt;m_live_num &gt; pool-&gt;m_min_num){
+                    pool-&gt;m_live_num--;
+                    <span class="co">//先解锁再销毁</span>
+                    pthread_mutex_unlock(&amp;pool-&gt;m_mutex_pool);
+                    pool-&gt;destory_thread();
+                }
+            } 
+        }
+
+        <span class="kw">if</span>(pool-&gt;shutdown){
+            pthread_mutex_unlock(&amp;pool-&gt;m_mutex_pool);
+            pool-&gt;destory_thread();
+        }
+        
+        <span class="co">//取任务</span>
+        Task task = pool-&gt;m_task_queue-&gt;get_task();
+        pool-&gt;m_busy_num++;
+        pthread_mutex_unlock(&amp;pool-&gt;m_mutex_pool);
+        <span class="co">//执行任务</span>
+        std::cout&lt;&lt;<span class="st">&quot;thread &quot;</span>&lt;&lt;std::to_string(pthread_self())&lt;&lt;<span class="st">&quot; start working.....</span><span class="ch">\n</span><span class="st">&quot;</span>; 
+        task.fun(task.arg);
+        <span class="kw">delete</span> task.arg;
+        task.arg = <span class="kw">nullptr</span>;
+
+        <span class="co">//任务处理结束</span>
+        std::cout&lt;&lt;<span class="st">&quot;thread &quot;</span>&lt;&lt;std::to_string(pthread_self())&lt;&lt;<span class="st">&quot; end work.....</span><span class="ch">\n</span><span class="st">&quot;</span>; 
+
+        pthread_mutex_lock(&amp;pool-&gt;m_mutex_pool); 
+        pool-&gt;m_busy_num--;
+        pthread_mutex_unlock(&amp;pool-&gt;m_mutex_pool);
+
+    }
+    <span class="kw">return</span> <span class="kw">nullptr</span>;
+}
+
+
+<span class="dt">void</span> Thread_pool::destory_thread(){
+    pthread_t tid = pthread_self();
+    <span class="kw">for</span>(<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; m_max_num; i++){
+        <span class="kw">if</span>(thread_compose[i] == tid){
+            std::cout &lt;&lt; <span class="st">&quot;threadExit() function: thread &quot;</span> 
+                &lt;&lt; std::to_string(pthread_self()) &lt;&lt; <span class="st">&quot; exiting...&quot;</span> &lt;&lt; std::endl;
+        }
+        thread_compose[i] = <span class="dv">0</span>;
+        <span class="kw">break</span>;
+    }
+    pthread_exit(<span class="kw">nullptr</span>);
+}</code></pre></div>
+<p>+++</p>
+<h1 id="反转链表的递归写法">反转链表的递归写法</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">ListNode* reverseList(ListNode* head) {
+    <span class="kw">if</span>(head == <span class="kw">nullptr</span>){
+        <span class="kw">return</span> head;
+    }
+    <span class="kw">if</span>(head-&gt;next == <span class="kw">nullptr</span>){
+        <span class="kw">return</span> head;
+    }
+    ListNode *temp = reverseList(head-&gt;next);
+    head-&gt;next-&gt;next = head;
+    head-&gt;next = <span class="kw">nullptr</span>;
+    <span class="kw">return</span> temp;
+}</code></pre></div>
+<h1 id="引用计数实现共享指针">引用计数实现共享指针</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span> &lt;<span class="kw">class</span> T&gt;
+<span class="kw">class</span> Ref_count{
+<span class="kw">private</span>:
+    T* ptr;         <span class="co">//数据对象指针</span>
+    <span class="dt">int</span>* count;     <span class="co">//引用计数器指针</span>
+<span class="kw">public</span>:
+    <span class="co">//普通指针构造共享指针</span>
+    Ref_count(T* t):ptr(t),count(<span class="kw">new</span> <span class="dt">int</span>(<span class="dv">1</span>)){}
+
+    ~Ref_count(){
+        decrease();
+    }
+
+    <span class="co">//拷贝构造</span>
+    Ref_count(<span class="dt">const</span> Ref_count&lt;T&gt;&amp; tmp){
+        count = tmp-&gt;count;
+        ptr = tmp-&gt;ptr
+        increase();
+    }
+
+    <span class="co">//注意=在指针里面是指向的意思，因此说明=左边的共享指针指向了=右边的</span>
+    <span class="co">//因此=左边的共享指针-1，=右边的共享指针+1</span>
+    Ref_count&lt;T&gt;&amp; <span class="kw">operator</span>=(<span class="dt">const</span> Ref_count&amp; tmp){
+        <span class="kw">if</span>(tmp != <span class="kw">this</span>){
+            decrease();
+            ptr = tmp-&gt;ptr;
+            count = tmp-&gt;count;
+            increase();
+        }
+        <span class="kw">return</span> *<span class="kw">this</span>
+    }
+
+    T* <span class="kw">operator</span> -&gt;() <span class="dt">const</span>{
+        <span class="kw">return</span> ptr;
+    }
+
+    T&amp; <span class="kw">operator</span> *() <span class="dt">const</span>{
+        <span class="kw">return</span> *ptr;
+    }
+
+    <span class="dt">void</span> increase(){
+        <span class="kw">if</span>(count){
+            *(count)++;
+        }
+    }
+
+    <span class="dt">void</span> decrease(){
+        <span class="kw">if</span>(count){
+            *(count)--;
+            <span class="kw">if</span>(*count == <span class="dv">0</span>){
+                <span class="co">//引用计数为0的时候就删除数据对象指针和引用对象指针</span>
+                <span class="kw">delete</span> ptr;
+                ptr = <span class="kw">nullptr</span>;
+                <span class="kw">delete</span> count;
+                count = <span class="kw">nullptr</span>;
+            }
+        }
+    }
+
+    T* get() <span class="dt">const</span>{
+        <span class="kw">return</span> ptr;
+    }
+
+    <span class="dt">int</span> get_count() <span class="dt">const</span>{
+        <span class="kw">if</span>(!count){
+            <span class="kw">return</span> <span class="dv">0</span>;
+        }
+        <span class="kw">return</span> *count;
+    }
+};</code></pre></div>
+<p>+++</p>
+<h1 id="二叉树遍历">二叉树遍历</h1>
+<h2 id="递归">递归</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//前序</span>
+<span class="dt">void</span> pre_traverse(BinaryTree *root){
+    <span class="kw">if</span>(root){
+        cout&lt;&lt;T-&gt;val;
+        pre_traverse(root-&gt;left);
+        pre_traverse(root-&gt;right);
+    }
+}
+
+<span class="co">//中序</span>
+<span class="dt">void</span> mid_traverse(BinaryTree *root){
+    <span class="kw">if</span>(root){
+        mid_traverse(root-&gt;left);
+        cout&lt;&lt;T-&gt;val;
+        mid_traverse(root-&gt;right);
+    }
+}
+
+<span class="co">//后序</span>
+<span class="dt">void</span> back_traverse(BinaryTree *root){
+    <span class="kw">if</span>(root){
+        mid_traverse(root-&gt;left);
+        mid_traverse(root-&gt;right);
+        cout&lt;&lt;T-&gt;val;
+    }
+}</code></pre></div>
+<h2 id="非递归">非递归</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//前序</span>
+<span class="dt">void</span> pre_traverse(BinaryTree *root){
+    stack&lt;BinaryTree *&gt; s;
+    BinaryTree* cur = root;
+    <span class="kw">while</span>(cur || !s.empty()){
+        <span class="kw">while</span>(cur){
+            cout&lt;&lt;cur-&gt;Val;
+            s.push(cur);
+            cur = cur-&gt;left;
+         }
+        <span class="co">//当cur为空，开始出栈，出栈肯定要判断栈是否为空</span>
+        <span class="kw">if</span>(!s.empty()){
+            cur = s.top();
+            s.pop();
+            cur = cur-&gt;right
+        }
+    }
+}
+
+
+<span class="co">//中序</span>
+<span class="dt">void</span> mid_traverse(BinaryTree *root){
+    stack&lt;BinaryTree*&gt; s;
+    BinaryTree* cur = root;
+    <span class="kw">while</span>(cur || !s.empty()){
+        <span class="kw">while</span>(cur){
+            cur.push(cur);
+            cur = cur-&gt;left;
+        }
+        <span class="kw">if</span>(!s.empty()){
+            cur = s.top();
+            s.pop();
+            cout&lt;&lt;cur-&gt;val;
+            cur = cur-&gt;right;
+        }
+    }
+}
+
+<span class="co">//后序</span>
+<span class="dt">void</span> back_traverse(BinaryTree *root){
+    stack&lt;BinaryTree*&gt; s;
+    BinaryTree* cur = root;
+    unordered_set&lt;BinaryTree*&gt; res;
+    <span class="kw">while</span>(cur || !s.empty()){
+        <span class="kw">while</span>(cur){
+            s.push(cur);
+            cur = cur-&gt;left
+        }
+        <span class="kw">if</span>(!s.empty()){
+            cur = s.top();
+            s.top();
+            <span class="co">//当前节点是第一次入栈,加入到容器中，并重新入栈</span>
+            <span class="kw">if</span>(res.find(cur) == res.end()){
+                res.insert(cur);
+                s.push(cur);
+                cur = cur-&gt;right
+            }<span class="kw">else</span>{
+                cout&lt;&lt;cur-&gt;val;
+                cur = <span class="kw">nullptr</span>;
+            }
+        }
+    }
+}
+
+<span class="co">//层序</span>
+<span class="co">//基本思想：</span>
+<span class="co">//1.先将根节点放到队列中</span>
+<span class="co">//2.根节点弹出队列，然后将根节点的左、右儿子入队</span>
+<span class="co">//3.弹出左儿子，放入左儿子的左右儿子</span>
+<span class="co">//4.弹出右儿子，放入右儿子的左右儿子</span>
+<span class="co">//5.重复3、4步</span>
+<span class="dt">void</span> LevelOrder(BinTree* root){
+    queue&lt;BinTree*&gt; m_queue;
+    <span class="kw">if</span>(!root){
+        <span class="kw">return</span>;
+    }
+    BinTree* tmp;
+    q.push(root);
+    <span class="kw">while</span>(!q.empty()){
+        tmp = q.front();
+        q.pop();
+        cout&lt;&lt;tmp-&gt;val&lt;&lt;endl;
+        <span class="kw">if</span>(tmp-&gt;left){
+            q.push(tmp-&gt;left);
+        }
+        <span class="kw">if</span>(tmp-&gt;right){
+            q.push(tmp-&gt;right);
+        }
+    }
+}</code></pre></div>
+<h1 id="写一个string类">写一个string类</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> String
+{ 
+<span class="kw">public</span>: 
+    String(<span class="dt">const</span> <span class="dt">char</span> *str = NULL); <span class="co">// 普通构造函数 </span>
+    String(<span class="dt">const</span> String &amp;other); <span class="co">// 拷贝构造函数</span>
+    String(<span class="dt">const</span> String &amp;&amp;other); <span class="co">// 移动构造函数</span>
+    ~ String(<span class="dt">void</span>); <span class="co">// 析构函数 </span>
+    String &amp; <span class="kw">operator</span> =(<span class="dt">const</span> String &amp;other); <span class="co">// 赋值函数 </span>
+<span class="kw">private</span>: 
+    <span class="dt">char</span> *m_data; <span class="co">// 用于保存字符串 </span>
+    <span class="dt">int</span> size;
+};
+
+<span class="co">//普通构造函数 </span>
+String::String(<span class="dt">const</span> <span class="dt">char</span> *str)  
+{ 
+     <span class="kw">if</span>(str==NULL)  
+     { 
+         m_data = <span class="kw">new</span> <span class="dt">char</span>[<span class="dv">1</span>]; <span class="co">// 得分点：对空字符串自动申请存放结束标志&#39;\0&#39;的空 </span>
+         <span class="co">//加分点：对m_data加NULL 判断 </span>
+         *m_data = <span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span>;  
+     }  
+     <span class="kw">else</span> 
+     { 
+         <span class="dt">int</span> length = strlen(str);  
+         m_data = <span class="kw">new</span> <span class="dt">char</span>[length<span class="dv">+1</span>]; 
+         strcpy(m_data, str);  
+     } 
+} 
+<span class="co">// String的析构函数 </span>
+String::~String(<span class="dt">void</span>)  
+{ 
+    <span class="kw">delete</span> [] m_data; <span class="co">// 或delete m_data; </span>
+} 
+<span class="co">//拷贝构造函数 </span>
+String::String(<span class="dt">const</span> String &amp;other) 　　　<span class="co">// 得分点：输入参数为const型 </span>
+{  
+     <span class="dt">int</span> length = strlen(other.m_data);  
+     m_data = <span class="kw">new</span> <span class="dt">char</span>[length<span class="dv">+1</span>]; 　　　　
+     strcpy(m_data, other.m_data);  
+}
+String::String(<span class="dt">const</span> String &amp;&amp;other) 　　　<span class="co">// 得分点：输入参数为const型 </span>
+{  
+     m_data = other.data;
+     other.data = <span class="kw">nullptr</span>;
+}
+<span class="co">//赋值函数 </span>
+String &amp; String::<span class="kw">operator</span> =(<span class="dt">const</span> String &amp;other) <span class="co">// 得分点：输入参数为const型 </span>
+{  
+    <span class="kw">if</span>(<span class="kw">this</span> == &amp;other) 　　<span class="co">//得分点：检查自赋值 </span>
+       <span class="kw">return</span> *<span class="kw">this</span>;  
+    <span class="kw">if</span>(m_data){
+        <span class="kw">delete</span> [] m_data; 　　　　<span class="co">//得分点：释放原有的内存资源 </span>
+    } 
+    <span class="dt">int</span> length = strlen( other.m_data );  
+    m_data = <span class="kw">new</span> <span class="dt">char</span>[length<span class="dv">+1</span>]; 　
+    strcpy( m_data, other.m_data );  
+    <span class="kw">return</span> *<span class="kw">this</span>; 　　　　　　　　<span class="co">//得分点：返回本对象的引用 </span>
+}
+<span class="co">//赋值函数 </span>
+String &amp; String::<span class="kw">operator</span> =(<span class="dt">const</span> String &amp;other) <span class="co">// 得分点：输入参数为const型 </span>
+{  
+    <span class="kw">if</span>(<span class="kw">this</span> == &amp;other){
+        <span class="co">//得分点：检查自赋值 </span>
+        <span class="kw">return</span> *<span class="kw">this</span>;
+    }
+    <span class="kw">if</span>(m_data){
+        <span class="kw">delete</span> [] m_data; 　　　　<span class="co">//得分点：释放原有的内存资源 </span>
+    } 
+    m_data = other.data;
+    other.data = <span class="kw">nullptr</span>;
+    <span class="kw">return</span> *<span class="kw">this</span>; 　　　　　　　　<span class="co">//得分点：返回本对象的引用 </span>
+} </code></pre></div>
+<h1 id="手写一个memcpy">手写一个memcpy</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> * my_memcpy(<span class="dt">void</span> *dst, <span class="dt">const</span> <span class="dt">void</span> *src, size_t count){
+    assert(dst != <span class="kw">nullptr</span>);
+    assert(src != <span class="kw">nullptr</span>);
+    <span class="dt">char</span>* temp_dst=(<span class="dt">char</span>*)dst;
+    <span class="dt">char</span>* temp_src=(<span class="dt">char</span> *)src;
+    <span class="kw">if</span>(temp_dst&gt;temp_src&amp;&amp;temp_dst&lt;temp_src+count){
+        <span class="co">//有内存重叠的情况</span>
+        temp_dst=temp_dst+count<span class="dv">-1</span>;
+        temp_src=temp_src+count<span class="dv">-1</span>;
+        <span class="kw">while</span>(count--){
+            *temp_dst--=*temp_src--;
+        }
+    }<span class="kw">else</span>{
+        <span class="co">//没有内存重叠的情况</span>
+         <span class="kw">while</span>(count--){
+            *temp_dst++=*temp_src++;
+        }
+    }
+    <span class="kw">return</span> (<span class="dt">void</span> *)dst;
+}  </code></pre></div>
+<p>注意，不能用是否碰到<code>\0</code>判断是否拷贝结束，因为是整块内存，如果用<code>\0</code>来判断，可能到中间就停止拷贝了。</p>
+<p><strong>提升：一次复制 1 个字节和一次复制 4 个字节占用的 cpu 指令周期是一样的，写一个一次复制8个字节的？</strong></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> * nmemcy(<span class="dt">void</span> *dst, <span class="dt">const</span> <span class="dt">void</span> *src, size_t count){
+    size_t times8 = count / <span class="dv">8</span>;
+    <span class="co">//剩下不够8字节的按照1字节复制</span>
+    size_t times1 = count % <span class="dv">8</span>;
+    <span class="kw">static_cast</span>&lt;<span class="dt">int</span>*&gt;(dst);
+    <span class="kw">static_cast</span>&lt;<span class="dt">int</span>*&gt;(src);
+    <span class="kw">while</span>(times8--){
+        *dst = *src;
+        dst++;
+        src++;
+    }
+    <span class="kw">static_cast</span>&lt;<span class="dt">char</span>*&gt;(dst);
+    <span class="kw">static_cast</span>&lt;<span class="dt">char</span>*&gt;(src);
+    <span class="kw">while</span>(times1--){
+        *dst = *src;
+        dst++;
+        src++;
+    }
+    <span class="kw">return</span> dst;
+}</code></pre></div>
+<p>在地址按8字节对齐的时候，上述算法的效率比单字节 memcpy 实现高很多，但如果地址没有按8字节对齐，则其效率并不高，有时甚至还比普通 memcpy 还低。这可能是因为，虽然上述算法减少了 cpu 的指令数，但内存的速度比 cpu 慢得多，速度的瓶颈还是在内存。</p>
+<h1 id="手写strcpy">手写strcpy</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//把src所指向的字符串复制到dest，注意：dest定义的空间应该⽐src⼤。</span>
+<span class="dt">char</span>* strcpy(<span class="dt">char</span> *dest, <span class="dt">const</span> <span class="dt">char</span> *src) {
+     <span class="dt">char</span> *ret = dest;
+     assert(dest!=NULL);<span class="co">//优化点1：检查输⼊参数</span>
+     assert(src!=NULL);
+     <span class="kw">while</span>(*src != <span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span>){
+        *(dest++)=*(src++);
+     }
+    *dest = <span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span>;<span class="co">//优化点2：⼿动地将最后的&#39;\0&#39;补上</span>
+     <span class="kw">return</span> ret;
+}
+
+<span class="co">//考虑内存重叠的字符串拷⻉函数优化的情况</span>
+<span class="dt">char</span>* strcpy(<span class="dt">char</span> *dest,<span class="dt">char</span> *src) {
+     <span class="dt">char</span> *ret = dest;
+     assert(dest!=NULL);
+     assert(src!=NULL);
+     memmove(dest,src,strlen(src)<span class="dv">+1</span>);
+     <span class="kw">return</span> ret;
+}
+
+<span class="co">//对于以上代码，我们可以看出来，它是存在隐患的</span>
+<span class="co">//当源字符串的长度超出目标字符串时，会导致把数据写入到我们无法控制的地址中去，存在很大的风险，所以就有了strncpy</span>
+<span class="dt">char</span> *strncpy(<span class="dt">char</span>* dest, <span class="dt">const</span> <span class="dt">char</span>* src, size_t n)
+{
+    assert( (dest != NULL) &amp;&amp; (src != NULL));
+    <span class="dt">char</span> *address = dest;
+    <span class="kw">while</span> ( n-- &amp;&amp; (*src++ != <span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span>)){
+        *dest++ = *src++;
+    }
+    *dest = <span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span>;
+    <span class="kw">return</span> address;
+}</code></pre></div>
+<h1 id="手写strcat">手写strcat</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//把 src 所指向的字符串追加到 dest 所指向的字符串的结尾。</span>
+<span class="dt">char</span>* strcat(<span class="dt">char</span> *dest,<span class="dt">const</span> <span class="dt">char</span> *src) {
+    <span class="co">//1. 将目的字符串的起始位置先保存，最后要返回它的头指针</span>
+    <span class="co">//2. 先找到dest的结束位置,再把src拷⻉到dest中，记得在最后要加上&#39;\0&#39;</span>
+    <span class="dt">char</span> *ret = dest;
+    assert(dest!= <span class="kw">nullptr</span>);
+    assert(src!= <span class="kw">nullptr</span>);
+    <span class="kw">while</span>(*dest!=<span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span>)
+        dest++;
+    <span class="kw">while</span>(*src!=<span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span>)
+        *(dest++)=*(src++);
+    *dest=<span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span>;
+    <span class="kw">return</span> ret;
+}</code></pre></div>
+<h1 id="手写strcmp">手写strcmp</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//把 str1 所指向的字符串和 str2 所指向的字符串进⾏⽐较。</span>
+<span class="co">//该函数返回值如下：</span>
+<span class="co">//如果返回值 &lt; 0，则表示 str1 ⼩于 str2。</span>
+<span class="co">//如果返回值 &gt; 0，则表示 str1 ⼤于 str2。</span>
+<span class="co">//如果返回值 = 0，则表示 str1 等于 str2。</span>
+<span class="co">//&#39;\0&#39;的ascii码是0</span>
+<span class="dt">int</span> strcmp(<span class="dt">const</span> <span class="dt">char</span>* str1, <span class="dt">const</span> <span class="dt">char</span>*str2){
+    assert(str1 != <span class="kw">nullptr</span> &amp;&amp; str2 != <span class="kw">nullptr</span>);
+    <span class="kw">while</span> (*str1 != <span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span> &amp;&amp; *str2 != <span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span> &amp;&amp; *str1 == *str2){
+        str1++;
+        str2++;
+    }
+    <span class="kw">if</span>(*(<span class="dt">unsigned</span> <span class="dt">char</span>*)str1 &lt; *(<span class="dt">unsigned</span> <span class="dt">char</span>*)str2){
+        <span class="kw">return</span> <span class="dv">-1</span>;
+    }
+    <span class="kw">else</span> <span class="kw">if</span> (*(<span class="dt">unsigned</span> <span class="dt">char</span>*)str1 &gt; *(<span class="dt">unsigned</span> <span class="dt">char</span>*)str2){
+        <span class="kw">return</span> <span class="dv">1</span>;
+    }
+    <span class="kw">return</span> <span class="dv">0</span>;
+    <span class="co">//return *str1 - *str2;</span>
+}</code></pre></div>
+<h1 id="手写strlen">手写strlen</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> strlen(<span class="dt">const</span> <span class="dt">char</span> *str) {
+    assert(str != NULL);
+    <span class="dt">int</span> len = <span class="dv">0</span>;
+    <span class="kw">while</span>( (*str++) != <span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span>){
+        len++;
+    }
+    <span class="kw">return</span> len;
+}</code></pre></div>
+<h1 id="手写strfind">手写strfind</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//在字符串 str1中查找第⼀次出现字符串 str2 的位置，不包含终⽌符 &#39;\0&#39;。</span>
+<span class="dt">char</span>* strstr(<span class="dt">const</span> <span class="dt">char</span> *str1, <span class="dt">const</span> <span class="dt">char</span> *str2) {
+     <span class="dt">char</span>* tmp_s = str1;
+     assert(str1 != <span class="kw">nullptr</span>);
+     assert(str2!= <span class="kw">nullptr</span>);
+    <span class="co">//若str2为空，则直接返回空</span>
+     <span class="kw">if</span>(!str2){
+         <span class="kw">return</span> <span class="kw">nullptr</span>;
+     }
+    <span class="co">//若不为空，则进⾏查询</span>
+     <span class="kw">while</span>(*tmp_s != <span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span>) {
+        <span class="dt">char</span>* s1 = tmp_s;
+        <span class="dt">char</span>* s2 = str2;
+        <span class="kw">while</span>(*s1 != <span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span> &amp;&amp; *s2!=<span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span> &amp;&amp; *s1 == *s2){
+            s1++;
+            s2++;
+        }
+        <span class="co">//若s2先结束</span>
+        <span class="kw">if</span>(*s2 == <span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span>){
+            <span class="kw">return</span> str2;
+        }
+         <span class="co">//若s1先结束⽽s2还没结束，则返回空</span>
+        <span class="kw">if</span>(*s2 != <span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span> &amp;&amp; *s1== <span class="st">&#39;</span><span class="ch">\0</span><span class="st">&#39;</span>){
+             <span class="kw">return</span> <span class="kw">nullptr</span>;
+        }
+        tmp_s++;
+     }
+     <span class="kw">return</span> <span class="kw">nullptr</span>;
+}</code></pre></div>
+<h1 id="排序算法">排序算法</h1>
+<h2 id="快排">快排</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//这个函数主要是求pivot的</span>
+<span class="dt">int</span> partition(<span class="dt">int</span> *a, <span class="dt">int</span> left, <span class="dt">int</span> right){
+    <span class="co">//首先要随机选取一个pivot，这样做是为了根据pivot分成两个子数组数组。一下三种选择方式均可以</span>
+    <span class="dt">int</span> pivot = a[left];
+    <span class="dt">int</span> pivot = a[right];
+    <span class="dt">int</span> pivot = a[left + (right - left) / <span class="dv">2</span>];<span class="co">//这样做是为了防止数组越界</span>
+    <span class="dt">int</span> pivot_index = left/right/left + (right - left) / <span class="dv">2</span>
+    <span class="co">//两个指针移动，当同时指到一个元素时候就退出循环</span>
+    <span class="co">//切记，必须从右边开始找！！！！</span>
+    <span class="kw">while</span>(left &lt; right){
+         <span class="kw">while</span>(a[right] &gt;= pivot &amp;&amp; left &lt; right){
+            right--;
+        }
+        <span class="kw">while</span>(a[left] &lt;= pivot &amp;&amp; left &lt; right){
+            left++;
+        }
+        <span class="kw">if</span>(left &lt; right){
+            swap(a[left], a[right]);            
+        }
+    }
+    <span class="co">//这一步是为了将选取的pivot值放在中间，保证左边的子数组均比pivot小，右边的子数组均比pivot大</span>
+    <span class="co">//这一步也是交换元素,交换选取pivot的索引和left的索引所对应的值</span>
+    a[povit_index] = a[left];
+    a[left] = povit;
+    <span class="kw">return</span> left;
+    <span class="co">/*优化的写法：：</span>
+<span class="co">    int pivot = a[left];</span>
+<span class="co">    while(left&lt;right){</span>
+<span class="co">        while(left&lt;right&amp;&amp;a[right]&lt;=pivot)right--;</span>
+<span class="co">        a[left] = a[right];</span>
+<span class="co">        while(left&lt;right&amp;&amp;a[left]&gt;=pivot)left++;</span>
+<span class="co">        a[right] = a[left];</span>
+<span class="co">    }</span>
+<span class="co">    a[left] = pivot;</span>
+<span class="co">    return left;</span>
+<span class="co">    */</span>
+}
+<span class="dt">void</span> quicksort(<span class="dt">int</span> *a, <span class="dt">int</span> left, <span class="dt">int</span> right){
+    <span class="co">//边界条件判断</span>
+    <span class="kw">if</span>(left &gt;= right){
+        <span class="kw">return</span>;
+    }
+    <span class="dt">int</span> pivot = partition();
+    quicksort(a, left, pivot - <span class="dv">1</span>);
+    quicksort(a, pivot <span class="dv">+1</span>, right);
+}</code></pre></div>
+<p>第二种</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> Quick_sort(<span class="dt">int</span> left,<span class="dt">int</span> right,<span class="dt">int</span> arr[]){
+    <span class="kw">if</span>(left&gt;=right)<span class="kw">return</span>;
+    <span class="dt">int</span> i,j,base,temp;
+    i=left,j=right;
+    base=arr[left];
+    <span class="kw">while</span>(i&lt;j){
+        <span class="kw">while</span>(arr[j]&gt;=base &amp;&amp; i&lt;j)j--;
+        <span class="kw">while</span>(arr[i]&lt;=base &amp;&amp; i&lt;j)i++;
+        <span class="kw">if</span>(i&lt;j){
+            temp=arr[i];
+            arr[i]=arr[j];
+            arr[j]=temp;
+        } 
+    }
+    arr[left]=arr[i];
+    arr[i]=base;
+    Quick_sort(left,i<span class="dv">-1</span>,arr);
+    Quick_sort(i<span class="dv">+1</span>,right,arr);
+}</code></pre></div>
+<p>高低指针不是轮流替换空余位置，而是同时找到不符合的元素，然后交换二者。</p>
+<p>最后，高低指针相遇，再把基准元素与相遇位置上的元素交换即可。</p>
+<h2 id="堆排序">堆排序</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> heap_bulid(vector&lt;<span class="dt">int</span>&gt;&amp; vec, <span class="dt">int</span> root, <span class="dt">int</span> len)
+    <span class="dt">int</span> left_child = root*<span class="dv">2</span> + <span class="dv">1</span>；
+    <span class="dt">int</span> righ_child = root*<span class="dv">2</span> + <span class="dv">2</span>；
+    <span class="dt">int</span> max_root = root;
+    <span class="kw">if</span>(left_child &lt; len &amp;&amp; vec[left_child] &gt; vec[max_root]){
+        max_root = left;    
+    }
+    <span class="kw">if</span>(right_child &lt; len &amp;&amp; vec[right_child] &gt; vec[max_root]){
+        max_root = right;
+    }
+    <span class="co">//如果最大值的节点不是原先的父节点，表示需要</span>
+    <span class="kw">if</span>(max_root != root){
+        swap(vec[root], vec[max_root]);
+        heap_bulid(vec, max_root, len);
+    }
+}
+<span class="dt">void</span> heap_sort(vector&lt;<span class="dt">int</span>&gt;&amp; vec){
+    <span class="co">//从右到左sink()方式构造堆，右指的不是最右边，而是从中间向左逼近</span>
+    <span class="dt">int</span> len = vec.size();
+    <span class="co">//从最后一个节点的父节点开始调整</span>
+    <span class="kw">for</span>(<span class="dt">int</span> i = len / <span class="dv">2</span> - <span class="dv">1</span>; i &gt;=<span class="dv">0</span>; i--){
+        heap_bulid(vec, i, len);
+    }
+    <span class="co">//构建完后开始排序</span>
+    <span class="kw">for</span>(<span class="dt">int</span> j = len - <span class="dv">1</span>; j &gt; <span class="dv">0</span>; j--){
+        swap(vec[<span class="dv">0</span>], vec[j]);
+        <span class="co">//交换完后从新建堆,这个堆的长度就要减去被移除(堆顶的那个)的最大元素之后的长度，所以长度不断变化，必须参数要带上长度</span>
+        heap_build(vec, <span class="dv">0</span>, j);
+    }
+}</code></pre></div>
+<h2 id="归并排序">归并排序</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> merge(vector&lt;<span class="dt">int</span>&gt;&amp; vec, vector&lt;<span class="dt">int</span>&gt;&amp; tmp1, vector&lt;<span class="dt">int</span>&gt;&amp; tmp2){
+    <span class="dt">int</span> len1 = tmp1.size();
+    <span class="dt">int</span> len2 = tmp2.size();
+    <span class="dt">int</span> p1 = <span class="dv">0</span>;
+    <span class="dt">int</span> p2 = <span class="dv">0</span>;
+    <span class="kw">while</span>(p1 &lt; len1 &amp;&amp; p2 &lt; len2){
+        <span class="kw">if</span>(tmp1[p1] &lt;tmp2[p2]){
+            vec.push_back(tmp1[p1++]);
+        }<span class="kw">else</span>{
+            vec.push_back(tmp2[p2++]);
+        }
+    }
+    <span class="kw">while</span>(p1 &lt;len1){
+        vec.push_back(tmp1[p1++]);
+    }
+    <span class="kw">while</span>(p2 &lt; len2){
+        vec.push_back(tmp2[p2++]);
+    }
+}
+<span class="dt">void</span> mergesort(vector&lt;<span class="dt">int</span>&gt;&amp; vec){
+    <span class="kw">if</span>(vec.size() &lt;= <span class="dv">1</span>){
+        <span class="kw">return</span>;
+    }
+    <span class="kw">auto</span> mid = vec.begin() + vec.size()/<span class="dv">2</span>;
+    vector&lt;<span class="dt">int</span>&gt; tmp1(vec.begin(), mid);
+    vector&lt;<span class="dt">int</span>&gt; tmp2(mid, vec.end());
+    mergesort(tmp1);
+    mergesort(tmp2);
+    vec.clear();
+    merge(vec, tmp1, tmp2);
+}</code></pre></div>
+<h1 id="如何判断本机是大端序还是小端序">如何判断本机是大端序还是小端序？</h1>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="dt">int</span> i=<span class="bn">0x12345678</span>;   
+<span class="dt">char</span> *p=(<span class="dt">char</span> *)&amp;i;   
+<span class="kw">if</span>(*p == <span class="bn">0x78</span>)     
+    printf(<span class="st">&quot;小端模式&quot;</span>); 
+<span class="kw">else</span> <span class="co">// (*p == 0x12)</span>
+    printf(<span class="st">&quot;大端模式&quot;</span>);</code></pre></div>
+<h1 id="c-多线程打印奇偶数">C++ 多线程打印奇偶数</h1>
+<p><a href="https://blog.csdn.net/Deep___Learning/article/details/106013837">参考链接</a></p>
+<p><a href="https://blog.csdn.net/wkb15002993591/article/details/107046097">参考链接</a></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="ot">#include&lt;stdio.h&gt;</span>
+<span class="ot">#include&lt;pthread.h&gt;</span>
+<span class="ot">#include&lt;unistd.h&gt;</span>
+
+<span class="dt">int</span> count = <span class="dv">0</span>;
+pthread_mutex_t m_mutex;
+pthread_cond_t cond1;
+pthread_cond_t cond2;
+
+
+<span class="dt">void</span>* thread1(<span class="dt">void</span>* arg){
+    <span class="kw">while</span>(<span class="dv">1</span>){
+        pthread_mutex_lock(&amp;m_mutex);
+        <span class="co">//要先阻塞线程， 不能先打印再阻塞，不然就会执行thread1和thread2.</span>
+        pthread_cond_wait(&amp;cond1, &amp;m_mutex);
+        printf(<span class="st">&quot;thread1:</span><span class="ch">%d\n</span><span class="st">&quot;</span>, count);
+        pthread_mutex_unlock(&amp;m_mutex);
+    }
+}
+
+
+<span class="dt">void</span>* thread2(<span class="dt">void</span>* arg){
+    <span class="kw">while</span>(<span class="dv">1</span>){
+        pthread_mutex_lock(&amp;m_mutex);
+        pthread_cond_wait(&amp;cond2, &amp;m_mutex);
+        printf(<span class="st">&quot;thread2:</span><span class="ch">%d\n</span><span class="st">&quot;</span>, count);
+        pthread_mutex_unlock(&amp;m_mutex);
+    }
+}
+
+<span class="dt">void</span>* thread3(<span class="dt">void</span>* arg){
+    <span class="kw">while</span>(<span class="dv">1</span>)
+    {
+        <span class="co">//thread3是管理线程，管理线程必须阻塞一段，不然可以注释看一下问题。 </span>
+        sleep(<span class="dv">1</span>);
+        pthread_mutex_lock(&amp;m_mutex);
+        count++;
+        <span class="kw">if</span>(count%<span class="dv">2</span> != <span class="dv">0</span>){
+            pthread_cond_signal(&amp;cond1);
+        }<span class="kw">else</span>{
+            pthread_cond_signal(&amp;cond2);
+        }
+        pthread_mutex_unlock(&amp;m_mutex);
+    }
+}
+
+<span class="dt">int</span> main(){
+    pthread_mutex_init(&amp;m_mutex, NULL);
+    pthread_cond_init(&amp;cond1, NULL);
+    pthread_cond_init(&amp;cond2, NULL);
+
+    pthread_t p1;
+    pthread_t p2;
+    pthread_t p3;
+
+    pthread_create(&amp;p1, NULL, thread1, NULL);
+    pthread_create(&amp;p2, NULL, thread2, NULL);
+    pthread_create(&amp;p3, NULL, thread3, NULL);
+
+    pthread_join(p1, NULL);
+    pthread_join(p2, NULL);
+    pthread_join(p3, NULL);
+
+    pthread_mutex_destroy(&amp;m_mutex);
+    pthread_cond_destroy(&amp;cond1);
+    pthread_cond_destroy(&amp;cond2);
+    <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h1 id="手撕lru算法">手撕LRU算法</h1>
+<ul>
+<li>版本1：自己实现循环链表存储，没有用API</li>
+</ul>
+<p>```c++ /********************不用API的版本*************************/ /********************简单说一下思路*************************/ //1.首先hash表用的是unordered_map来实现，用来查找key对应的node节点，所以hash表应该是[key,node]形式存储 //2.LRUCache这个类实现双向链表的添加，删除，更新和遍历 //3.同时这个类还要实现get和put两个功能 //4.我这里用的是循环双向链表，因此查找链表尾端的元素为O(1)，正常的双向链表是O(n) //总结：最重要的就是hash表中的key对应的不是int而是一个node节点，这个要记住 #include<unordered_map> #include<iostream> struct Node{ int key; int value; Node* pre; Node* next; Node(){} Node(int k, int v):key(k), value(v), pre(nullptr), next(nullptr){} };</p>
+<p>class LRUCache{ private: //通过key可以找到位于链表中的节点 std::unordered_map<int, Node*> hash; int capacity; Node* head_node; public: LRUCache(int cap){ capacity = cap; head_node = new Node(); //初始化dummy_Node,next和pre都指向自己 head_node-&gt;next = head_node-&gt;pre = head_node; } //将新来的插入双向链表头部 void add_Node(Node* n); //将某个节点拿出来重新插入头部 void update_Node(Node* n); //移除链表中最后一个（最久未使用） void pop_back(); //输出LRU结构 void show(); int get(int key); void put(int key, int value); };</p>
+<p>//注意，该节点可能是新节点，也可能是已经存在的有重新入链表的节点 void LRUCache::add_Node(Node* n){ //表示当前节点n就是dummy的next节点，不用加入 if(n-&gt;pre == head_node){ return; } //将节点n插入head_node后面 n-&gt;pre = head_node; n-&gt;next = head_node-&gt;next; head_node-&gt;next-&gt;pre = n; head_node-&gt;next = n; }</p>
+<p>void LRUCache::update_Node(Node* n){ //表示当前节点n就是dummy的next节点，不用断掉 if(n-&gt;pre == head_node){ return; } n-&gt;next-&gt;pre = n-&gt;pre; n-&gt;pre-&gt;next = n-&gt;next; add_Node(n); }</p>
+<p>//弹出链表的最后一个，由于是循环链表，就是head_node-&gt;pre void LRUCache::pop_back(){ Node* tmp = head_node-&gt;pre; head_node-&gt;pre = tmp-&gt;pre; tmp-&gt;pre-&gt;next = head_node; //删除unordered_map中的key hash.erase(tmp-&gt;key); }</p>
+<p>void LRUCache::show(){ //链表中没有节点，退出 if(head_node-&gt;next = head_node){ return; } Node* tmp = head_node-&gt;next; while(tmp-&gt;next != head_node){ std::cout&lt;&lt;&quot;key:&quot;&lt;<tmp->key&lt;&lt;&quot;,vlaue:&quot;&lt;<tmp->value&lt;&lt;std::endl; } } int LRUCache::get(int key){ auto it = hash.find(key); if(it == hash.end()){ std::cout&lt;&lt;&quot;there is no key&quot;&lt;&lt;std::endl; return -1; } //取出key对应的node节点 Node* node = it-&gt;second; update_Node(node); return node-&gt;value;</p>
+<p>} void LRUCache::put(int key, int value){ auto it = hash.find(key); if(it == hash.end()){ Node* node = new Node(key, value); add_Node(node); hash.insert({key, node}); if(hash.size() &gt; capacity){</p>
+<pre><code>          pop_back();
+      }
+  }else{
+      it-&gt;second-&gt;value = value;
+      update_Node(it-&gt;second);
+  }</code></pre>
+<p>} ```</p>
+<ul>
+<li>版本2：使用deque，为什么使用deque说的很清楚</li>
+</ul>
+<p>```c++ /****************注意unordered_map的插入************/</p>
+<p>#include <iostream> #include <deque> #include <unordered_map> #include <list></p>
+<p>class LRUCache{ private: int capacity; //1.之所以用deque不用list是因为移除尾部元素的时候，deque方便 //2.deque里面可以存储自定的node类型，也可以用pair表示，这里我用pair了 std::deque<std::pair<int, int>&gt; my_deque; //通过key找到对应key在deque中的位置 std::unordered_map&lt;int, std::deque<std::pair<int, int>&gt;::iterator&gt; hash; public: LRUCache(int cap):capacity(cap){} int get(int key); void put(int key, int value); };</p>
+<p>int LRUCache::get(int key){ if(hash.find(key) == hash.end()){ std::cout&lt;&lt;&quot;there is no key&quot;&lt;&lt;std::endl; return -1; } std::pair<int, int> tmp = *hash[key]; my_deque.erase(hash[key]); my_deque.push_front(tmp); //更新hash表中对应key位于deque的位置 hash[key] = my_deque.begin(); return tmp.second; }</p>
+<p>void LRUCache::put(int key, int value){ if(hash.find(key) == hash.end()){ if(my_deque.size() &gt;= capacity){ //把hash表中的抹除，然后删除deque中的 auto it = my_deque.back(); hash.erase(it.first); my_deque.pop_back(); my_deque.push_front({key, value}); hash.insert({key, my_deque.begin()}); }else{ my_deque.push_front({key, value}); hash.insert({key, my_deque.begin()}); } }else{ //更新就行 my_deque.erase(hash[key]); my_deque.push_front({key, value}); //更新hash表中key的位置 hash[key] = my_deque.begin(); } } ```</p>
+<h1 id="vector数组创建二叉树">vector数组创建二叉树</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">struct</span> BTree{
+    <span class="dt">int</span> val;
+    BTree* left;
+    BTree* right;
+    BTree(<span class="dt">int</span> v):val(v), left(<span class="kw">nullptr</span>), right(<span class="kw">nullptr</span>){}
+};
+
+<span class="co">/******普通二叉树*******/</span>
+BTree* create_tree(vector&lt;<span class="dt">int</span>&gt;&amp; node, <span class="dt">int</span> index = <span class="dv">0</span>){
+    <span class="dt">int</span> len = node.size();
+    <span class="kw">if</span>(node[index] == <span class="dv">0</span>){
+        <span class="kw">return</span> <span class="kw">nullptr</span>;
+    }
+    BTree* root = <span class="kw">new</span> BTree(node[index]);
+    <span class="dt">int</span> left_index = <span class="dv">2</span>*index<span class="dv">+1</span>;
+    <span class="dt">int</span> right_index = <span class="dv">2</span>*index<span class="dv">+2</span>;
+    <span class="kw">if</span>(left_index &gt; len - <span class="dv">1</span>){
+        root-&gt;left = <span class="kw">nullptr</span>;
+    }<span class="kw">else</span>{
+        root-&gt;left = create_tree(node, left_index);
+    }
+    <span class="kw">if</span>(right_index &gt; len - <span class="dv">1</span>){
+        root-&gt;right = <span class="kw">nullptr</span>;
+    }<span class="kw">else</span>{
+        root-&gt;right = create_tree(node, right_index);
+    }
+    <span class="kw">return</span> root;
+}</code></pre></div>
+<h1 id="十进制转十六进制">十进制转十六进制</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">string convert_to_hex(<span class="dt">int</span> number) {
+    string result;
+    <span class="dt">int</span> y;
+    <span class="kw">while</span>(number &gt; <span class="dv">0</span>){
+        y = number % <span class="dv">16</span>;
+        <span class="kw">if</span>(y &lt; <span class="dv">10</span>){
+            result = <span class="dt">char</span>(<span class="st">&#39;0&#39;</span> + y) + result;
+        }<span class="kw">else</span>{
+            result = <span class="dt">char</span>(<span class="st">&#39;A&#39;</span> - <span class="dv">10</span> + y) +result;
+        }
+        number = number / <span class="dv">16</span>;
+    }
+    <span class="kw">return</span> result;
+}</code></pre></div>
+<h1 id="二分查找">二分查找</h1>
+<h2 id="左闭右闭left-right">左闭右闭[left, right]</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> binary_search(vector&lt;<span class="dt">int</span>&gt;&amp; nums, <span class="dt">int</span> target){
+    <span class="dt">int</span> left = <span class="dv">0</span>;
+    <span class="dt">int</span> right = nums.size() - <span class="dv">1</span>;
+    <span class="kw">while</span>(left &lt;= right){
+        <span class="dt">int</span> middle = left + (right - left) /<span class="dv">2</span>;
+        <span class="kw">if</span>(nums[middle] &gt; target){
+            right = middle <span class="dv">-1</span>;
+        }
+        <span class="kw">else</span> <span class="kw">if</span>(nums[middle] &lt; target){
+            left = middle + <span class="dv">1</span>;
+        }<span class="kw">else</span>{
+            <span class="kw">return</span> middle;
+        }
+    }
+    <span class="kw">return</span> <span class="dv">-1</span>;
+}</code></pre></div>
+<h2 id="左闭右开left-right">左闭右开[left, right)</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> search(vector&lt;<span class="dt">int</span>&gt;&amp; nums, <span class="dt">int</span> target) {
+     <span class="dt">int</span> left = <span class="dv">0</span>;
+     <span class="dt">int</span> right = nums.size(); <span class="co">// 定义target在左闭右开的区间里，即：[left, right)</span>
+     <span class="kw">while</span> (left &lt; right) { <span class="co">// 因为left == right的时候，在[left, right)是无效的空间，所以使用 &lt;</span>
+         <span class="dt">int</span> middle = left + ((right - left) &gt;&gt; <span class="dv">1</span>);
+         <span class="kw">if</span> (nums[middle] &gt; target) {
+             right = middle; <span class="co">// target 在左区间，在[left, middle)中</span>
+         } <span class="kw">else</span> <span class="kw">if</span> (nums[middle] &lt; target) {
+            left = middle + <span class="dv">1</span>; <span class="co">// target 在右区间，在[middle + 1, right)中</span>
+         } <span class="kw">else</span> { <span class="co">// nums[middle] == target</span>
+            <span class="kw">return</span> middle; <span class="co">// 数组中找到目标值，直接返回下标</span>
+         }
+     }
+     <span class="co">// 未找到目标值</span>
+     <span class="kw">return</span> <span class="dv">-1</span>;
+ }</code></pre></div>
+<h2 id="最左侧边界">最左侧边界</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//左闭右开</span>
+<span class="dt">int</span> left_bound(vector&lt;<span class="dt">int</span>&gt;&amp; nums, <span class="dt">int</span> target) {
+    <span class="kw">if</span> (nums.length == <span class="dv">0</span>) <span class="kw">return</span> <span class="dv">-1</span>;
+    <span class="dt">int</span> left = <span class="dv">0</span>;
+    <span class="dt">int</span> right = nums.length(); <span class="co">// 注意</span>
+    
+    <span class="kw">while</span> (left &lt; right) { <span class="co">// 注意</span>
+        <span class="dt">int</span> mid = left + (right -left) / <span class="dv">2</span>;
+        <span class="kw">if</span> (nums[mid] &lt; target) {
+            left = mid + <span class="dv">1</span>; <span class="co">//没问题</span>
+        } <span class="kw">else</span>{
+            right = mid;  <span class="co">//这个有点意思，找到target不返回而是继续缩小边界，不断锁定左侧，最终会出现left=right</span>
+        }
+    }
+    <span class="co">//检查出界情况</span>
+    <span class="kw">if</span> (left &gt;= nums.length || nums[left] != target)
+        <span class="kw">return</span> <span class="dv">-1</span>;
+    <span class="kw">return</span> left;
+}
+
+<span class="co">//左闭右闭</span>
+<span class="dt">int</span> left_bound(<span class="dt">int</span>[] nums, <span class="dt">int</span> target) {
+    <span class="dt">int</span> left = <span class="dv">0</span>, right = nums.length - <span class="dv">1</span>;
+    <span class="co">// 搜索区间为 [left, right]</span>
+    <span class="kw">while</span> (left &lt;= right) {
+        <span class="dt">int</span> mid = left + (right - left) / <span class="dv">2</span>;
+        <span class="kw">if</span> (nums[mid] &lt; target) {
+            <span class="co">// 搜索区间变为 [mid+1, right]</span>
+            left = mid + <span class="dv">1</span>;
+        } <span class="kw">else</span> <span class="kw">if</span> (nums[mid] &gt; target) {
+            <span class="co">// 搜索区间变为 [left, mid-1]</span>
+            right = mid - <span class="dv">1</span>;
+        } <span class="kw">else</span> <span class="kw">if</span> (nums[mid] == target) {
+            <span class="co">// 收缩右侧边界</span>
+            right = mid - <span class="dv">1</span>;
+        }
+    }
+    <span class="co">// 检查出界情况</span>
+    <span class="kw">if</span> (left &gt;= nums.length || nums[left] != target)
+        <span class="kw">return</span> <span class="dv">-1</span>;
+    <span class="kw">return</span> left;
+}</code></pre></div>
+<h2 id="右侧边界">右侧边界</h2>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//左闭右开</span>
+<span class="dt">int</span> right_bound(vector&lt;<span class="dt">int</span>&gt;&amp; nums, <span class="dt">int</span> target) {
+    <span class="kw">if</span> (nums.length == <span class="dv">0</span>) <span class="kw">return</span> <span class="dv">-1</span>;
+    <span class="dt">int</span> left = <span class="dv">0</span>;
+    <span class="dt">int</span> right = nums.length(); <span class="co">// 注意</span>
+    
+    <span class="kw">while</span> (left &lt; right) { <span class="co">// 注意</span>
+        <span class="dt">int</span> mid = left + (right -left) / <span class="dv">2</span>;
+        <span class="kw">if</span> (nums[mid] &lt; target) {
+            left = mid ; <span class="co">//没问题</span>
+        } <span class="kw">else</span>{
+            right = mid - <span class="dv">1</span>;  
+        }
+    }
+    <span class="co">//检查出界情况</span>
+    <span class="kw">if</span> (right &gt;= nums.length || nums[left] != target)
+        <span class="kw">return</span> <span class="dv">-1</span>;
+    <span class="kw">return</span> right;
+}</code></pre></div>
+<h1 id="c语言实现多态">C语言实现多态</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//虚函数表结构</span>
+<span class="kw">struct</span> base_vtbl
+{
+    <span class="dt">void</span>(*dance)(<span class="dt">void</span> *);
+    <span class="dt">void</span>(*jump)(<span class="dt">void</span> *);
+};
+
+<span class="co">//基类</span>
+<span class="kw">struct</span> base
+{
+    <span class="co">/*virtual table*/</span>
+    <span class="kw">struct</span> base_vtbl *vptr;
+};
+<span class="co">//基类的构造函数</span>
+<span class="kw">struct</span> base * new_base()
+{
+    <span class="kw">struct</span> base *temp = (<span class="kw">struct</span> base *)malloc(<span class="kw">sizeof</span>(<span class="kw">struct</span> base));
+    <span class="co">//基类虚表结构中函数指针具体关联的函数名</span>
+    temp-&gt;vptr-&gt;dance = base_dance;
+    temp-&gt;vptr-&gt;jump = base_jump;
+    <span class="kw">return</span> temp;
+}
+<span class="co">//基类的成员函数</span>
+<span class="dt">void</span> base_dance()
+{
+    printf(<span class="st">&quot;base dance</span><span class="ch">\n</span><span class="st">&quot;</span>);
+}
+<span class="dt">void</span> base_jump()
+{
+    printf(<span class="st">&quot;base jump</span><span class="ch">\n</span><span class="st">&quot;</span>);
+}
+
+
+<span class="co">//派生类</span>
+<span class="kw">struct</span> derived1
+{
+    <span class="kw">struct</span> base super;
+    <span class="dt">int</span> high;
+};
+<span class="co">//派生类的构造函数</span>
+<span class="kw">struct</span> derived1 * new_derived1(<span class="dt">int</span> h)
+{
+    <span class="kw">struct</span> derived1 * temp= (<span class="kw">struct</span> derived1 *)malloc(<span class="kw">sizeof</span>(<span class="kw">struct</span> derived1));
+    <span class="co">//派生类虚表结构中函数指针具体关联的函数名</span>
+    temp-&gt;super-&gt;vptr-&gt;dance = derived1_table;
+    temp-&gt;super-&gt;vptr-&gt;jump = derived1_jump;
+    temp-&gt;high = h;
+    <span class="kw">return</span> temp;
+}
+<span class="co">//派生类对象成员函数</span>
+<span class="dt">void</span> derived1_dance()
+{
+    printf(<span class="st">&quot;derived1 dance</span><span class="ch">\n</span><span class="st">&quot;</span>);
+}
+<span class="dt">void</span> derived1_jump(<span class="dt">void</span> * <span class="kw">this</span>)
+{
+    <span class="kw">struct</span> derived1* temp = (<span class="kw">struct</span> derived1 *)<span class="kw">this</span>;
+    printf(<span class="st">&quot;derived1 jump:</span><span class="ch">%d\n</span><span class="st">&quot;</span>, temp-&gt;high);
+}
+
+<span class="co">/*******实际调用***********/</span>
+ <span class="kw">struct</span> base * bas = new_base();
+<span class="co">//这里调用的是基类的成员函数</span>
+bas-&gt;vptr-&gt;dance();
+bas-&gt;vptr-&gt;jump();
+
+<span class="kw">struct</span> derived1 * child = new_derived1(<span class="dv">100</span>);
+<span class="co">//基类指针指向派生类</span>
+bas  = (<span class="kw">struct</span> base *)child;
+
+<span class="co">//这里调用的其实是派生类的成员函数</span>
+bas-&gt;vptr-&gt;dance();
+bas-&gt;vptr-&gt;jump((<span class="dt">void</span> *)bas);</code></pre></div>
+<h1 id="不用sizeof如何获得int所占的字节数">不用sizeof如何获得int所占的字节数？</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> main(){
+    <span class="dt">int</span> i = <span class="dv">1</span>;
+    <span class="dt">int</span> count = <span class="dv">0</span>;
+    <span class="kw">while</span>(i)
+        i = i &lt;&lt;<span class="dv">1</span>;<span class="co">//一个循环，每次左移一位</span>
+        count++;
+    cout &lt;&lt; count/<span class="dv">8</span> &lt;&lt; endl;<span class="co">//因为一个字节8位</span>
+    <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<h1 id="c通过递归实现字符串反转">C++通过递归实现字符串反转</h1>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="ot">#include &lt;iostream&gt;</span>
+<span class="ot">#include &lt;string&gt;</span>
+<span class="kw">using</span> <span class="kw">namespace</span> std;
+string  f(string str ){
+    <span class="dt">int</span> len=str.length() ;
+    <span class="kw">if</span> (len&lt;=<span class="dv">1</span>)
+        <span class="kw">return</span> str;                
+    <span class="kw">return</span> f(str.substr( <span class="dv">1</span>)) + str.substr(<span class="dv">0</span>,<span class="dv">1</span>); <span class="co">//substr(0,1)表示从下标0开始取一个字符形成的串</span>
+}              </code></pre></div>
+<pre><code>#include &lt;assert.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+ 
+std::string trim(const std::string&amp; str)
+{
+    std::string::size_type pos = str.find_first_not_of(&#39; &#39;); //在字符串中查找第一个与str中的字符都不匹配的字符，返回它的位置
+    if (pos == std::string::npos) {
+        return str;
+    }
+ 
+    std::string::size_type pos2 = str.find_last_not_of(&#39; &#39;);
+    if (pos2 != std::string::npos) {
+        return str.substr(pos, pos2 - pos + 1);
+    }
+ 
+    return str.substr(pos);
+}
+ 
+void split(const std::string&amp; str, std::vector&lt;std::string&gt;* ret_, std::string sep = &quot;,&quot;)
+{
+    if (str.empty()) {
+        return;
+    }
+ 
+    std::string tmp;
+    std::string::size_type pos_begin = str.find_first_not_of(sep);
+    std::string::size_type comma_pos = 0;
+    while (pos_begin != std::string::npos) {
+        comma_pos = str.find(sep, pos_begin);
+        if (comma_pos != std::string::npos) {
+            tmp = str.substr(pos_begin, comma_pos - pos_begin);
+            pos_begin = comma_pos + sep.length();
+        } else {
+            tmp = str.substr(pos_begin);
+            pos_begin = comma_pos;
+        }
+ 
+        if (!tmp.empty()) {
+            ret_-&gt;push_back(tmp);
+            tmp.clear();
+        }
+    }
+}
+ 
+bool DateVerify(int year, int month, int day)
+{
+    // 这里限制了年份需要在2013-2020,可去掉
+    if(year &lt; 2013 || year &gt; 2020 || month &lt; 1 || month &gt; 12 || day &lt; 1 || day &gt; 31) {
+        return false;
+    }
+ 
+    switch (month) {
+    case 4:
+    case 6:
+    case 9:
+    case 11:
+        if (day &gt; 30) {   // 4.6.9.11月天数不能大于30
+            return false;
+        }
+        break;
+    case 2: 
+        {
+            bool bLeapYear = (year % 4 == 0 &amp;&amp; year % 100 != 0) || (year % 400 == 0);
+            if ((bLeapYear &amp;&amp; day &gt; 29) || (!bLeapYear &amp;&amp; day &gt; 28)) {
+                // 闰年2月不能大于29天;平年2月不能大于28天
+                return false;
+            }
+        }
+        break;
+    default:
+        break;
+    }
+ 
+    return true;
+}
+ 
+// 校验yyyy/mm/dd
+bool CheckDateValid(const std::string&amp; strDate)
+{
+    std::string strPureDate = trim(strDate);
+    if(strPureDate.length() &lt; 8 || strPureDate.length() &gt; 10) {
+        return false;
+    }
+ 
+    std::vector&lt;std::string&gt; vecFields;
+    split(strPureDate, &amp;vecFields, &quot;/&quot;);
+ 
+    if(vecFields.size() != 3) {
+        return false;
+    }
+ 
+    // TODO:这里最好再下判断字符转换是否成功
+    int nYear = atoi(vecFields[0].c_str());
+    int nMonth = atoi(vecFields[1].c_str());
+    int nDay = atoi(vecFields[2].c_str());
+ 
+    return DateVerify(nYear, nMonth, nDay);
+}
+ 
+// 校验HH:MM:SS
+bool CheckTimeValid(const std::string&amp; strTime)
+{
+    std::string strPureTime = trim(strTime);
+    if(strPureTime.length() &lt; 5 || strPureTime.length() &gt; 8) {
+        return false;
+    }
+ 
+    std::vector&lt;std::string&gt; vecFields;
+    split(strPureTime, &amp;vecFields, &quot;:&quot;);
+ 
+    if(vecFields.size() != 3) {
+        return false;
+    }
+ 
+    int nHour = atoi(vecFields[0].c_str());
+    int nMinute = atoi(vecFields[1].c_str());
+    int nSecond = atoi(vecFields[2].c_str());
+ 
+    bool bValid = (nHour &gt;= 0 &amp;&amp; nHour &lt;= 23);
+    bValid = bValid &amp;&amp; (nMinute &gt;=0 &amp;&amp; nMinute &lt;= 59);
+    bValid = bValid &amp;&amp; (nSecond &gt;= 0 &amp;&amp; nSecond &lt;= 59);
+ 
+    return bValid;
+}
+ 
+// 日期格式为: yyyy/mm/dd || yyyy/mm/dd HH:MM:SS
+bool CheckDateTimeValid(const std::string&amp; strDateTime)
+{
+    std::string strPureDateTime = trim(strDateTime);
+    
+    std::vector&lt;std::string&gt; vecFields;
+    split(strPureDateTime, &amp;vecFields, &quot; &quot;);
+ 
+    if(vecFields.size() != 1 &amp;&amp; vecFields.size() != 2) {
+        return false;
+    }
+ 
+    // 仅有日期
+    if(vecFields.size() == 1) {
+        return CheckDateValid(vecFields[0]);
+    }
+ 
+    return CheckDateValid(vecFields[0]) &amp;&amp; CheckTimeValid(vecFields[1]);
+}
+ 
+int main()
+{
+    assert(CheckDateTimeValid(&quot;2013/8/1&quot;));
+    assert(CheckDateTimeValid(&quot;  2013/8/1  &quot;));
+    assert(CheckDateTimeValid(&quot;2013/8/01&quot;));
+    assert(CheckDateTimeValid(&quot;2013/08/1&quot;));
+    assert(CheckDateTimeValid(&quot;2013/08/01&quot;));
+    assert(!CheckDateTimeValid(&quot;2013/ / &quot;));
+    assert(!CheckDateTimeValid(&quot;2013/   / &quot;));
+    assert(!CheckDateTimeValid(&quot;2013/  /  &quot;));
+    assert(!CheckDateTimeValid(&quot;2013/13/01&quot;));
+    assert(!CheckDateTimeValid(&quot;2013/-1/31&quot;));
+    assert(CheckDateTimeValid(&quot;2013/01/31&quot;));
+    assert(CheckDateTimeValid(&quot;2020/02/29&quot;));
+    assert(!CheckDateTimeValid(&quot;2021/02/29&quot;));
+ 
+    assert(CheckDateTimeValid(&quot;2013/8/1 8:8:8&quot;));
+    assert(CheckDateTimeValid(&quot; 2013/8/1      8:8:8  &quot;));
+    assert(!CheckDateTimeValid(&quot;2013/8/1  18:8&quot;));
+    assert(!CheckDateTimeValid(&quot;2013/8/1  18&quot;));
+    assert(!CheckDateTimeValid(&quot;2013/8/1  18:8:60&quot;));
+    assert(CheckDateTimeValid(&quot;2013/8/1  00:8:00&quot;));
+    assert(CheckDateTimeValid(&quot;2013/8/1  00:00:00&quot;));
+    assert(CheckDateTimeValid(&quot;2013/8/1  0:0:0&quot;));
+    assert(!CheckDateTimeValid(&quot;2013/8/1  24:00:00&quot;));
+    assert(CheckDateTimeValid(&quot;2013/8/1  23:59:59&quot;));
+    assert(CheckDateTimeValid(&quot;2013/8/1 23:00:59&quot;));
+    assert(!CheckDateTimeValid(&quot;2013/8/1 23: 00: 59&quot;));
+    assert(CheckDateTimeValid(&quot;  2013/8/1  23:59:59&quot;));
+    assert(CheckDateTimeValid(&quot;  2013/8/1 23:00:59&quot;));
+    assert(!CheckDateTimeValid(&quot;  2013/8/1  23: 00: 59&quot;));
+ 
+    assert(!CheckDateTimeValid(&quot;2013-8/1 8:8:8&quot;));
+    return 0;
+}</code></pre>
