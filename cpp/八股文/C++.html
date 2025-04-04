@@ -312,7 +312,47 @@ printf(<span class="st">&quot;%p</span><span class="ch">\n</span><span class="st
     }
     <span class="co">// ...</span>
 }</code></pre></div>
-<p>特性 C 语言 C++ 支持的类型 仅 POD 类型（基本类型、结构体） 所有类型（包括类、STL 容器） 初始化时机 编译期（C99 前）或程序启动时 编译期或运行时（首次使用时初始化，线程安全） 动态初始化 ❌ 不允许（如 rand()） ✅ 允许 局部静态变量初始化 程序启动时（C99 前） 首次调用时（C++11 起线程安全） 类静态成员 无（C 无类） 必须类外初始化（C++17 可用 inline static） 默认初始化 基本类型初始化为 0 基本类型为 0，类类型调用默认构造函数</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">特性</th>
+<th align="left">C 语言</th>
+<th align="left">C++</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">支持的类型</td>
+<td align="left">仅 POD 类型（基本类型、结构体）</td>
+<td align="left">所有类型（包括类、STL 容器）</td>
+</tr>
+<tr class="even">
+<td align="left">初始化时机</td>
+<td align="left">编译期（C99 前）或程序启动时</td>
+<td align="left">编译期或运行时（首次使用时初始化，线程安全）</td>
+</tr>
+<tr class="odd">
+<td align="left">动态初始化</td>
+<td align="left">❌ 不允许（如 rand()）</td>
+<td align="left">✅ 允许</td>
+</tr>
+<tr class="even">
+<td align="left">局部静态变量初始化</td>
+<td align="left">程序启动时（C99 前）</td>
+<td align="left">首次调用时（C++11 起线程安全）</td>
+</tr>
+<tr class="odd">
+<td align="left">类静态成员</td>
+<td align="left">无（C 无类）</td>
+<td align="left">必须类外初始化（C++17 可用 inline static）</td>
+</tr>
+<tr class="even">
+<td align="left">默认初始化</td>
+<td align="left">基本类型初始化为 0</td>
+<td align="left">基本类型为 0，类类型调用默认构造函数</td>
+</tr>
+</tbody>
+</table>
 <h2 id="c中局部静态变量的问题">C++中局部静态变量的问题</h2>
 <h3 id="首先说一下局部静态变量的理解"><strong>首先说一下局部静态变量的理解</strong></h3>
 <p>局部静态变量位于内存中的静态存储区，未经初始化的局部静态变量会自动初始化为0。但是局部静态变量的作用于还是还是局部作用于，定义它的函数或者代码块结束的时候，作用于也随之结束。但是该变量值不会被销毁，而是在内存中驻留下来，知道程序全部结束，这个驻留的值我们不能访问她。</p>
@@ -467,6 +507,26 @@ ri=<span class="dv">8</span>;
 <li>下标运算符的结果(<code>[]</code>)</li>
 <li>字符串字面值(&quot;abc&quot;)</li>
 </ol>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="ot">#include &lt;iostream&gt;</span>
+<span class="ot">#include &lt;type_traits&gt;</span>
+
+<span class="dt">int</span> main() {
+    std::cout &lt;&lt; std::boolalpha;
+    std::cout &lt;&lt; <span class="st">&quot;Is </span><span class="ch">\&quot;</span><span class="st">hello</span><span class="ch">\&quot;</span><span class="st"> an lvalue? &quot;</span> 
+              &lt;&lt; !std::is_rvalue_reference&lt;<span class="kw">decltype</span>((<span class="st">&quot;hello&quot;</span>))&gt;::value &lt;&lt; std::endl;
+    <span class="co">// 输出: true</span>
+    <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> fun(<span class="dt">int</span> &amp;x) {
+<span class="co">//</span>
+}
+
+<span class="dt">int</span> main() {
+  fun(<span class="dv">10</span>);
+  <span class="kw">return</span> <span class="dv">0</span>;
+}
+
+<span class="co">// error: invalid initialization of non-const reference of type ‘int&amp;’ from an rvalue of type ‘int’</span></code></pre></div>
 <h3 id="右值">右值</h3>
 <p>rvalue 译为 &quot;<strong>read value</strong>&quot;，指那些可以提供数据值的表达式（不一定可以寻址，例如存储于寄存器中的数据）。右值有可能在内存中也有可能在寄存器中。一般来说就是活不过一行就会消失的值。</p>
 <p>那些是右值？</p>
@@ -693,6 +753,8 @@ Test t2(<span class="dv">1</span>);<span class="co">//正确</span></code></pre>
 <p><strong>友元函数</strong>能够使得普通函数直接访问类的保护数据和私有数据成员，避免了类成员函数的频繁调用，可以节约处理器开销，提高程序的效率，但所矛盾的是，即使是最大限度大保护，同样也破坏了类的封装特性，这即是友元的缺点，在现在cpu速度越来越快的今天我们并不推荐使用它。</p>
 <p><strong>友元类</strong>友元类的所有成员函数都是另一个类的友元函数，都可以访问另一个类中的隐藏信息（包括私有成员和保护成员）。</p>
 <p>友元的作用是提高了程序的运行效率（即减少了类型检查和安全性检查等都需要时间开销），但它破坏了类的封装性和隐藏性，使得非成员函数可以访问类的私有成员。</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">auto</span> cmp = [](ListNode *l1, ListNode *l2) { <span class="kw">return</span> l1-&gt;val &gt; l2-&gt;val; };
+        std::priority_queue&lt;ListNode*, std::vector&lt;ListNode*&gt;, <span class="kw">decltype</span>(cmp)&gt; pq(cmp);</code></pre></div>
 <blockquote>
 <p>我碰到了一种必须使用友元的情况。如下图</p>
 <p><img src="https://s2.loli.net/2022/08/16/7vWarITSkPYHOdK.png" alt="image-20220816221227150" style="zoom:50%;float:left" /></p>
@@ -748,6 +810,21 @@ Brass &amp;pb = dilly;</code></pre></div>
 <ul>
 <li><strong>构造函数可以设置为虚的吗？</strong></li>
 </ul>
+<p>不能 实现多态行为。</p>
+<p>原因：</p>
+<p>构造函数执行时，派生类对象尚未完全构造，vptr 可能指向基类的 vtable。</p>
+<p>调用虚函数会静态绑定到当前类的版本（即基类版本）。</p>
+<p>示例：</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Base {
+<span class="kw">public</span>:
+    Base() { callVirtual(); }
+    <span class="kw">virtual</span> <span class="dt">void</span> callVirtual() { cout &lt;&lt; <span class="st">&quot;Base</span><span class="ch">\n</span><span class="st">&quot;</span>; }
+};
+<span class="kw">class</span> Derived : <span class="kw">public</span> Base {
+<span class="kw">public</span>:
+    <span class="dt">void</span> callVirtual() <span class="kw">override</span> { cout &lt;&lt; <span class="st">&quot;Derived</span><span class="ch">\n</span><span class="st">&quot;</span>; }
+};
+Derived d; <span class="co">// 输出 &quot;Base&quot;（非预期！）</span></code></pre></div>
 <p>答：不能。因为虚函数的调用是需要通过“虚函数表”来进行的，而虚函数表也需要在对象实例化之后才能够进行调用。在构造对象的过程中，还没有为“虚函数表”分配内存。所以，这个调用也是违背先实例化后调用的准则。</p>
 <p>子类的默认构造函数总要执行的操作：执行基类的代码后调用父类的构造函数。</p>
 <ul>
@@ -1029,6 +1106,7 @@ A *a = new A; </code></pre>
 <li>如果析构函数抛出异常，则异常点之后的程序不会执行，如果析构函数在异常点之后执行了某些必要的动作比如释放某些资源，则这些动作不会执行，会造成诸如资源泄漏的问题。</li>
 <li>异常发生时，c++的异常处理机制在异常的传播过程中会进行栈展开（stack-unwinding）。在栈展开的过程中就会调用已经在栈构造好的对象的析构函数来释放资源，此时若其他析构函数本身也抛出异常，则前一个异常尚未处理，又有新的异常，会造成程序崩溃。</li>
 </ol>
+<p>异常处理的栈展开（Stack Unwinding） 是指当异常被抛出（throw）时，程序从当前执行点开始，沿着函数调用链向上回溯，依次析构栈上的局部对象，直到找到匹配的 catch 块的过程。这一机制确保了资源的安全释放（如内存、文件句柄等），避免泄漏。</p>
 <p>解决办法：把异常完全封装在析构函数内部，决不让异常抛出函数之外，代码如下：</p>
 <div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">DBConn::~DBconn()
 {
@@ -1204,6 +1282,9 @@ b=a<span class="co">//报错。</span></code></pre></div>
 <p>下面针对自定义类型变量：</p>
 <p>如果new和delete[]使用，delete的时候会找前4个字节，看要释放的内存有多大。但是使用new导致没有设备区部分4个字节用来存放数组长度，这样会导致这4个字节是未定义的，因此会调用不定次的delete。同时比如说其实地址为A，应该从A开始释放，现在会从A-4开始释放。</p>
 <p>如果new[]和delete一起使用，程序会认为这是一个对象占用的空间，而不是数组，因此就析构一次。同时释放的是new[]中表示长度的前4个字节的地址，应该从A-4开始释放，如果不从头释放的话回出问题。</p>
+<pre><code>Widget* widgets = new Widget[3]; // 调用3次构造函数
+
+delete[] widgets;</code></pre>
 <h2 id="free释放内存的理解">free释放内存的理解</h2>
 <blockquote>
 <p>其实malloc算法有很多，除了glibc使用的ptmalloc以外，还有tcmalloc, jemalloc等等。但总体上个人认为主要分两个流派。第一个流派是ptmalloc为代表的隐藏头风格，第二个流派就是以tcmalloc和jemalloc为代表的位图风格。且就目前的情况看，后者在性能上要占据上风。其中一个重要原因在于，隐藏头风格的算法，元数据（即chunk size）之间间隔太远，不利于CPU cache命中。</p>
@@ -1261,9 +1342,20 @@ b=a<span class="co">//报错。</span></code></pre></div>
 </ol>
 <p>只用于对象的指针和引用，主要用于执行“安全的向下转型”，因为downcast是不安全的</p>
 <p>dynamic_cast是唯一一个在运行时处理的，因为我们转换后的指针如果请求一块无效的内存的话是会报错的，但是用该强转后会返回null，即转换成功会返回引用或者指针，失败返回null。如果一个引用类型执行了类型转换并且这个转换是不可能的，运行时一个<code>bad_cast</code>的异常类型会被抛出：</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Animal { <span class="kw">public</span>: <span class="kw">virtual</span> ~Animal() {} };
+<span class="kw">class</span> Dog : <span class="kw">public</span> Animal {};
+<span class="kw">class</span> Cat : <span class="kw">public</span> Animal {};
+
+Animal* animal = <span class="kw">new</span> Dog();
+Dog* dog = <span class="kw">dynamic_cast</span>&lt;Dog*&gt;(animal); <span class="co">// 成功转换</span>
+Cat* cat = <span class="kw">dynamic_cast</span>&lt;Cat*&gt;(animal); <span class="co">// 返回 nullptr</span></code></pre></div>
 <ol start="3" style="list-style-type: decimal">
-<li><strong>const_cast</strong></li>
+<li><p><strong>const_cast</strong></p>
+<p>** 主要用于适配旧代码或 API 调用 **</p></li>
 </ol>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> print(<span class="dt">char</span>* str) { printf(<span class="st">&quot;</span><span class="ch">%s\n</span><span class="st">&quot;</span>, str); }
+<span class="dt">const</span> <span class="dt">char</span>* msg = <span class="st">&quot;hello&quot;</span>;
+print(<span class="kw">const_cast</span>&lt;<span class="dt">char</span>*&gt;(msg)); <span class="co">// 安全：函数不修改数据</span></code></pre></div>
 <p>const_cast转换符是用来移除const或volatile属性。一般用于强制消除对象的常量性。而<em>C</em>不提供消除<em>const</em>的机制（已验证）。</p>
 <p>但是不能用于去除变量的常量性，而是去除指向对象的引用或指针的常量性，因此去除对象必须是指针或者引用。</p>
 <p>指向常量的指针被转化成非常量指针，并且仍然指向原来的对象；常量引用被转换成非常量引用，并且仍然指向原来的对象；常量对象被转换成非常量对象。</p>
@@ -1871,9 +1963,10 @@ f3(<span class="dv">1</span>, <span class="dv">2</span>);       <span class="co"
 {
     <span class="dt">int</span> i = <span class="dv">1</span>;
     <span class="dt">int</span> count = <span class="dv">0</span>;
-    <span class="kw">while</span>(i)
+    <span class="kw">while</span>(i) {
         i = i &lt;&lt;<span class="dv">1</span>;<span class="co">//一个循环，每次左移一位</span>
         count++;
+    }
     cout &lt;&lt; count/<span class="dv">8</span> &lt;&lt; endl;<span class="co">//因为一个字节8位</span>
     <span class="kw">return</span> <span class="dv">0</span>;
 }</code></pre></div>
@@ -1906,6 +1999,7 @@ b = *p;</code></pre></div>
 <p>因为C和C++中的volatile并不是用来解决多线程竞争问题的，而是用来修饰一些因为程序不可控因素导致变化的变量，比如访问底层硬件设备的变量，以提醒编译器不要对该变量的访问擅自进行优化。</p>
 <p><strong>是否可以和const一起使用？</strong></p>
 <p>没问题，这俩又不冲突</p>
+<p>该对象不能被程序主动修改（const），但 其值可能被外部不可控因素改变（volatile） 硬件寄存器</p>
 <h2 id="extern-关键字">extern 关键字</h2>
 <p>①为了能够正确实现C++代码调用其他C语言代码。加上extern &quot;C&quot;后，会指示编译器这部分代码按C语言的进行编译，而不是C++的。主要原因是C++和C程序编译完成后在目标代码中的命名规则不同。比如C++语言在编译的时候为了解决函数的多态问题，会将函数名和参数联合起来生成一个中间的函数名称，而C语言则不会，因此会造成链接时找不到对应函数的情况，此时C函数就需要用extern “C”进行链接指定，这告诉编译器，请保持我的名称，不要给我生成用于链接的中间函数名。</p>
 <p>②extern是C/C++语言中表明函数和全局变量作用范围（可见性）的关键字，该关键字告诉编译器，其声明的函数和变量可以在本模块或其它模块中使用。</p>
@@ -2045,6 +2139,8 @@ deducePos(container.begin());</code></pre></div>
 <p>我们知道先入栈的占高地址，从结果看出入栈的顺序依次为<code>z-&gt;y-&gt;x</code>，即压栈顺序从右至左。</p>
 <p><strong>why?</strong></p>
 <p>本质上是因为支持可变长参数导致的。如果是从左至右的入站方式，最左边的参数就会被压在栈底，栈顶指针指向的是最右边的长度参数，由于可变长度，编译器无法找到最左边的参数吧。但是如果从右至左入栈，最左边的参数就在栈顶。</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">printf(<span class="dt">const</span> <span class="dt">char</span>* format, ...)
+从左到右怎么找到format在哪里</code></pre></div>
 <p><strong>printf的原理</strong></p>
 <p>C/C++的函数参数是通过压入堆栈的方式来给函数传参数的。 最先压⼊的参数最后出来，在计算机的内存中，数据有 2 块，⼀块是堆，⼀块是栈（函数参数及局部变量在这里），而栈是从内存的高地址向低地址生长的，控制生长的就是堆栈指针了，最先压入的参数是在最上面，就是说在所有参数的最后面，最后压⼊的参数在最下面，结构上看起来是第⼀个，所以最后压⼊的参数总是能够被函数找到。 因为它就在堆栈指针的上方。printf的第⼀个被找到的参数就是那个字符指针，就是被双引号括起来的那⼀部分， 函数通过判断字符串里控制参数的个数来判断参数个数及数据类型，通过这些就可算出数据需要的堆栈指针的偏移了。</p>
 <h2 id="模板元编程">模板元编程</h2>
@@ -2104,24 +2200,35 @@ deducePos(container.begin());</code></pre></div>
 <ol style="list-style-type: decimal">
 <li>指定传入的类型 —— 直接显示对象的数据类型</li>
 </ol>
-<p><code>c++    void print(Person&lt;string, int&gt;&amp;p);</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">   <span class="dt">void</span> print(Person&lt;string, <span class="dt">int</span>&gt;&amp;p);</code></pre></div>
 <ol start="2" style="list-style-type: decimal">
 <li>参数模板化 —— 将对象中的参数变为模板进行传递</li>
 </ol>
-<p><code>c++    template&lt;class T1, class T2&gt;    void print(Person&lt;T1, T2&gt;&amp; p);</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">   <span class="kw">template</span>&lt;<span class="kw">class</span> T1, <span class="kw">class</span> T2&gt;
+   <span class="dt">void</span> print(Person&lt;T1, T2&gt;&amp; p);</code></pre></div>
 <ol start="3" style="list-style-type: decimal">
 <li>整个类模板化 —— 将整个对象类型模板化进行传递</li>
 </ol>
-<p><code>c++    template&lt;class T&gt;    void print(T&amp; p);</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">   <span class="kw">template</span>&lt;<span class="kw">class</span> T&gt;
+   <span class="dt">void</span> print(T&amp; p);</code></pre></div>
 <p><strong>类模板与继承：</strong></p>
 <ol style="list-style-type: decimal">
 <li>当派生类继承基类的一个类模板时，子类在声明时，要指定出分类中的T类型</li>
 </ol>
-<p>```c++ template<class T> class Father{ T m; };</p>
-<p>//报错 class Son: public Father{</p>
-<p>};</p>
-<p>//正确 class Son: public Father<int>{</p>
-<p>}; ```</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">   <span class="kw">template</span>&lt;<span class="kw">class</span> T&gt;
+   <span class="kw">class</span> Father{
+       T m;
+   };
+   
+   <span class="co">//报错</span>
+   <span class="kw">class</span> Son: <span class="kw">public</span> Father{
+       
+   }; 
+   
+   <span class="co">//正确</span>
+   <span class="kw">class</span> Son: <span class="kw">public</span> Father&lt;<span class="dt">int</span>&gt;{
+       
+   }; </code></pre></div>
 <blockquote>
 <p>因为子类要继承父类中的成员变量，但是模板没有指定内存大小，所以是不确定的，而不确定性是c++所嗤之以鼻的。因此继承的时候得指定要继承模板的数据类型才行。</p>
 <p>但是这样不灵活，父类中的类型就被定死了，有违背c++灵活编程，所以这种方法不太实用</p>
@@ -2130,7 +2237,10 @@ deducePos(container.begin());</code></pre></div>
 <li><p>如果不指定，编译器无法给子类非配内存</p></li>
 <li><p>如果要灵活的话，子类也需变为类模板</p></li>
 </ol>
-<p><code>c++    template&lt;class T1, class T2&gt;    class Son: public Father&lt;T2&gt;{        T1 obj;    };</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">   <span class="kw">template</span>&lt;<span class="kw">class</span> T1, <span class="kw">class</span> T2&gt;
+   <span class="kw">class</span> Son: <span class="kw">public</span> Father&lt;T2&gt;{
+       T1 obj;
+   }; </code></pre></div>
 <p><strong>类模板成员函数的类外实现</strong></p>
 <div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//构造函数类外实现</span>
 <span class="kw">template</span>&lt;<span class="kw">class</span> T1, <span class="kw">class</span> T2&gt;
@@ -2139,8 +2249,8 @@ Person&lt;T1, T2&gt;::Person(T1 name, T2 age){}
 <span class="co">//成员函数类外实现</span>
 <span class="kw">template</span>&lt;<span class="kw">class</span> T1, <span class="kw">class</span> T2&gt;
 <span class="dt">void</span> Person&lt;T1, T2&gt;::show(){}</code></pre></div>
-<h3 id="模板和实现可不可以不写在一个文件里面为什么">模板和实现可不可以不写在一个文件里面？为什么？</h3>
-<p>不可以，实习的时候出错过。编译能通过，连接不能通过。如下代码：</p>
+<h3 id="模板和实现可以分别写在2个文件里吗为什么">模板和实现可以分别写在2个文件里吗？为什么？</h3>
+<p>不可以。编译能通过，连接不能通过。如下代码：</p>
 <div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">// add.h</span>
 <span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;
 T add(<span class="dt">const</span> T &amp;a, <span class="dt">const</span> T &amp;b);
@@ -2181,6 +2291,7 @@ collect2: error: ld returned <span class="dv">1</span> exit status</code></pre><
 <p>继承是数据的复制、模版是代码的复制。</p>
 <p>模板函数在编译完成之后，会生成对应参数数类型的函数；</p>
 <p>继承是对虚表、数据的复制</p>
+<p>继承体系中同名非虚函数：隐藏（Hiding）而非覆盖。如果子类定义了与父类 同名但非虚的函数，父类的同名函数会被 隐藏（而非覆盖或重载）。调用规则：通过子类对象调用时，只能访问子类的版本，父类版本需显式指定。</p>
 <h2 id="mutable关键字">mutable关键字</h2>
 <p>mutable：可变的</p>
 <p>首先想到的是在lamba表达式中有这个东西，表示如果是值传递的，可以修改，不加这个mutable属性不能修改，表示传递过来的是常量。虽然在匿名函数内部改变了变量的值，但是在外部还是原来的值</p>
@@ -2205,6 +2316,7 @@ test.b = <span class="dv">20</span>;  <span class="er">#</span> 允许访问</co
 <p>（2）dynamic_cast运算符，该运算符将基类的指针或引用安全地转换为派生类类型的指针或引用。</p>
 <p>我们知道C++的多态性（运行时）是由虚函数实现的，对于多态性的对象，无法在程序编译阶段确定对象的类型。当类中含有虚函数时，其基类的指针就可以指向任何派生类的对象，这时就有可能不知道基类指针到底指向的是哪个对象的情况，类型的确定要在运行时利用运行时类型标识做出。为了获得一个对象的类型可以使用typeid函数，该函数反回一个对type_info类对象的引用，要使用typeid必须使用头文件<code>&lt;typeinfo&gt;</code>，因为typeid是一个返回类型为typ_info的引用的函数</p>
 <h2 id="虚继承">虚继承</h2>
+<p>在 C++ 中，虚继承（Virtual Inheritance） 是解决多重继承中 菱形继承问题（Diamond Problem） 的关键机制。它确保在继承链中，公共基类（虚基类）的成员仅保留一份副本，避免重复继承导致的二义性和资源浪费</p>
 <p><strong>为什么要引入虚拟继承</strong></p>
 <p>虚拟继承是多重继承中特有的概念。虚拟基类是为解决多重继承而出现的。如:类D继承自类B1、B2，而类B1、B2都继承自类A，因此在类D中两次出现类A中的变量和函数。实现的代码如下：</p>
 <p>class A</p>
@@ -2220,6 +2332,8 @@ test.b = <span class="dv">20</span>;  <span class="er">#</span> 允许访问</co
 <p>C++标准库中的 iostream 类就是一个虚继承的实际应用案例。iostream 从 istream 和 ostream 直接继承而来，而 istream 和 ostream 又都继承自一个共同的名为 base_ios 的类，是典型的菱形继承。此时 istream 和 ostream 必须采用虚继承，否则将导致 iostream 类中保留两份 base_ios 类的成员。</p>
 <p><img src="https://cdn.jsdelivr.net/gh/luogou/cloudimg/data/20210104152649800.png" alt="img" style="zoom:80%;float:left" /></p>
 </blockquote>
+<p>D 对象的内存布局（简化）： [虚基类表指针] → A 的成员 [B 的成员][C 的成员] [D 的成员]</p>
+<p>g++ -fdump-class-hierarchy -c your_file.cpp clang++ -Xclang -fdump-record-layouts -c test.cpp</p>
 <p><strong>引入虚继承和直接继承会有什么区别呢</strong></p>
 <p>由于有了间接性和共享性两个特征，所以决定了虚继承体系下的对象在访问时必然会在时间和空间上与一般情况有较大不同。</p>
 <p>时间：在通过继承类对象访问虚基类对象中的成员（包括数据成员和函数成员）时，都必须通过某种间接引用来完成，这样会增加引用寻址时间（就和虚函数一样），其实就是调整this指针以指向虚基类对象，只不过这个调整是运行时间接完成的。</p>
@@ -2238,8 +2352,33 @@ test.b = <span class="dv">20</span>;  <span class="er">#</span> 允许访问</co
 };　　　　　　　　　　　　　        };　　　　　　　　　　　　　　　　　　virtual <span class="dt">void</span> foo();　　　　　　　virtual <span class="dt">void</span> foo();
 　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　           };　　　　　　　　　　　　　　　　 };</code></pre></div>
 <p>如果对这四种情况分别求sizeof(a）, sizeof(b)。结果是什么样的呢？下面是输出结果：</p>
-<p>第一种：4，12 第二种：4，4 第三种：8，16 第四种：8，8</p>
+<p>64位编译器 第一种：8,8优化了 第二种：8，8 第三种：16，32 第四种：16,16</p>
 <p>每个存在虚函数的类都要有一个4字节的指针指向自己的虚函数表，所以每种情况的类a所占的字节数应该是没有什么问题的。同时虚继承要有这样的一个指针vptr_b_a，这个指针叫虚类指针，也是四个字节；还要包括类a的字节数，所以类b的字节数就求出来了。而“第二种”和“第四种”情况则不包括vptr_b_a这个指针，这回应该木有问题了吧。</p>
+<p>** 并没有指向虚基类的指针**</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Base { <span class="dt">int</span> x; };
+<span class="kw">class</span> A : <span class="kw">virtual</span> <span class="kw">public</span> Base { <span class="dt">int</span> a; };
+<span class="kw">class</span> B : <span class="kw">virtual</span> <span class="kw">public</span> Base { <span class="dt">int</span> b; };
+<span class="kw">class</span> C : <span class="kw">public</span> A, <span class="kw">public</span> B { <span class="dt">int</span> c; };
+
+<span class="dt">int</span> main() {
+        C c;
+        <span class="kw">return</span> <span class="dv">0</span>;
+}
+
+
+*** Dumping AST Record Layout
+         <span class="dv">0</span> | <span class="kw">class</span> C
+         <span class="dv">0</span> |   <span class="kw">class</span> A (primary base)
+         <span class="dv">0</span> |     (A vtable pointer)
+         <span class="dv">8</span> |     <span class="dt">int</span> a
+        <span class="dv">16</span> |   <span class="kw">class</span> B (base)
+        <span class="dv">16</span> |     (B vtable pointer)
+        <span class="dv">24</span> |     <span class="dt">int</span> b
+        <span class="dv">28</span> |   <span class="dt">int</span> c
+        <span class="dv">32</span> |   <span class="kw">class</span> Base (<span class="kw">virtual</span> base)
+        <span class="dv">32</span> |     <span class="dt">int</span> x
+           | [<span class="kw">sizeof</span>=<span class="dv">40</span>, dsize=<span class="dv">36</span>, align=<span class="dv">8</span>,
+           |  nvsize=<span class="dv">32</span>, nvalign=<span class="dv">8</span>]</code></pre></div>
 <h2 id="c出现的内存问题">c++出现的内存问题</h2>
 <p>c++中内存问题大致有这几个方面：</p>
 <ol style="list-style-type: decimal">
@@ -2616,6 +2755,8 @@ mapTable[<span class="st">&quot;列名1&quot;</span>] = vecRow;</code></pre></di
 <p>而push_back(MyClass(10, “test”))中MyClass(10, “test”)调用了一次构造函数，同时值传递又调用拷贝构造函数。</p>
 <h3 id="一个vetor内存很大但实际我只用了很小一部分怎么解决">一个vetor内存很大但实际我只用了很小一部分怎么解决</h3>
 <p>swap</p>
+<p>通过交换临时空向量强制释放内存（C++11 前常用，现优先用 shrink_to_fit）。</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">std::vector&lt;<span class="dt">int</span>&gt;(vec).swap(vec); <span class="co">// 将 vec 与临时副本交换</span></code></pre></div>
 <h3 id="vector元素是指针类型">vector元素是指针类型</h3>
 <p>清空 vector 数据时，如果保存的数据项是指针类型，需要逐项 delete，否则会造成内存泄漏。</p>
 <h3 id="频繁调用push_back的影响">频繁调用push_back的影响</h3>
@@ -2640,6 +2781,7 @@ vector().swap(Vec); <span class="co">//清空Vec的内存；</span></code></pre>
 <p><strong>使用2倍（k=2）扩容机制扩容时，每次扩容后的新内存大小必定大于前面的总和。</strong></p>
 <p><strong>而使用1.5倍（k=1.5)扩容时，在几次扩展以后，可以重用之前的内存空间了。</strong></p>
 <p><strong>linux下是按照2倍的方式扩容的，而vs下是按照1.5倍的方式扩容的。</strong></p>
+<p>在 C++ 中，std::vector 的扩容策略（通常为 1.5 倍 或 2 倍）是工程实践中的权衡结果，旨在平衡 内存使用效率 和 性能开销</p>
 <h2 id="deque">deque</h2>
 <h3 id="deque描述">deque描述</h3>
 <p>vector是单向开口的连续线性空间，deque是一种双向开口的连续线性空间。双向开口就是说deque支持从头尾两端进行元素的插入和删除操作相比于vector的扩容空间的方式，deque实际上更加贴切的实现了动态空间的概念。deque没有容量的概念，因为它是动态以分段连续空间组合而成，随时可以增加一段新的空间并连接起来。由于要维护这种整体连续的假象，并提供随机存取的接口，也就是说提供random access iterator，避开重新配置，复制，释放的轮回，代价是复杂的迭代器结构。也就是说如果非必要的话，我们尽量使用vector。</p>
@@ -2909,6 +3051,155 @@ v.resize(<span class="dv">1000</span>);</code></pre></div>
 <p>答：不太合适。首先在多写的场景下，多个写之间需要通过锁来进行同步，虽然避免了对读写互斥情况加锁，但是多线程写时通常对数据的实时性要求较高，如果使用双buffer，所有新数据必须要等到索引切换时候才能使用，很可能达不到实时性要求。其次多线程写时若用双buffer模式，则在索引切换时候也需要给对应的对象加锁，并且也要用类似于上面的while循环保证没有现成在执行写入操作时才能进行指针切换，而且此时也要等待读操作完成才能进行切换，这时候就对备用对象的锁定时间过长，在数据更新频繁的情况下是不合适的。</p>
 <p><strong>应用场景：</strong></p>
 <p>双buffer方案在多线程环境下能较好的解决 “一写多读” 时的数据更新问题，特别是适用于数据需要定期更新，且一次更新数据量较大的情形。</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//lock-free</span>
+
+<span class="ot">#include &lt;atomic&gt;</span>
+<span class="ot">#include &lt;iostream&gt;</span>
+<span class="ot">#include &lt;memory&gt;</span>
+<span class="ot">#include &lt;chrono&gt;</span>
+<span class="ot">#include &lt;mutex&gt;</span>
+<span class="ot">#include &lt;vector&gt;</span>
+<span class="ot">#include &lt;thread&gt;</span>
+<span class="ot">#include &lt;ctime&gt;</span>
+<span class="ot">#include &lt;unistd.h&gt;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> std;
+
+<span class="kw">class</span> Obj {
+<span class="kw">public</span>:
+    <span class="dt">int</span> Get() { <span class="kw">return</span> val; }
+    <span class="dt">void</span> Set(<span class="dt">int</span> n) { val = n; }
+
+<span class="kw">private</span>:
+    <span class="dt">int</span> val;
+};
+
+atomic&lt;<span class="dt">int</span>&gt; curr_idx(<span class="dv">0</span>);
+mutex mu;
+<span class="dt">const</span> <span class="dt">int</span> max_loop = <span class="dv">1000000</span>;
+
+vector&lt;shared_ptr&lt;Obj&gt;&gt; obj_buffers;
+
+
+<span class="dt">void</span> Write() {
+    <span class="kw">auto</span> start = std::chrono::high_resolution_clock::now();
+    <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; max_loop; i++) {
+
+        size_t prepare = <span class="dv">1</span> - curr_idx.load();
+        <span class="kw">while</span> (obj_buffers[prepare].use_count() &gt; <span class="dv">1</span>) {
+            <span class="kw">continue</span>;
+        }
+
+        obj_buffers[prepare]-&gt;Set(i<span class="dv">+1</span>);
+        curr_idx = prepare;
+    }
+    <span class="kw">auto</span> end = std::chrono::high_resolution_clock::now();
+
+    <span class="co">// 4. 计算时间差并转换单位</span>
+    <span class="kw">auto</span> duration = std::chrono::duration_cast&lt;std::chrono::milliseconds&gt;(end - start);
+
+    <span class="co">// 输出结果</span>
+    std::cout &lt;&lt; <span class="st">&quot;Time taken: &quot;</span> &lt;&lt; duration.count() &lt;&lt; <span class="st">&quot; milliseconds</span><span class="ch">\n</span><span class="st">&quot;</span>;
+}
+
+<span class="dt">void</span> Read()
+{
+    <span class="dt">int</span> val = <span class="dv">0</span>;
+    <span class="kw">while</span> (val != max_loop) {
+        <span class="kw">auto</span> tmp = obj_buffers[curr_idx.load()];
+        val = tmp-&gt;Get();
+    }
+}
+
+<span class="dt">int</span> main()
+{
+    obj_buffers.emplace_back(make_shared&lt;Obj&gt;());
+    obj_buffers.emplace_back(make_shared&lt;Obj&gt;());
+
+    thread read1(Read);
+    thread read2(Read);
+    sleep(<span class="dv">1</span>);
+    thread wThread(Write);
+    wThread.join();
+    read1.join();
+    read2.join();
+
+    <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//lock </span>
+
+<span class="ot">#include &lt;atomic&gt;</span>
+<span class="ot">#include &lt;iostream&gt;</span>
+<span class="ot">#include &lt;memory&gt;</span>
+<span class="ot">#include &lt;chrono&gt;</span>
+<span class="ot">#include &lt;mutex&gt;</span>
+<span class="ot">#include &lt;vector&gt;</span>
+<span class="ot">#include &lt;thread&gt;</span>
+<span class="ot">#include &lt;ctime&gt;</span>
+<span class="ot">#include &lt;unistd.h&gt;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> std;
+
+<span class="kw">class</span> Obj {
+<span class="kw">public</span>:
+    <span class="dt">int</span> Get() { <span class="kw">return</span> val; }
+    <span class="dt">void</span> Set(<span class="dt">int</span> n) { val = n; }
+
+<span class="kw">private</span>:
+    <span class="dt">int</span> val;
+};
+
+atomic&lt;<span class="dt">int</span>&gt; curr_idx(<span class="dv">0</span>);
+mutex mu;
+<span class="dt">const</span> <span class="dt">int</span> max_loop = <span class="dv">1000000</span>;
+Obj obj;
+
+vector&lt;shared_ptr&lt;Obj&gt;&gt; obj_buffers;
+
+
+<span class="dt">void</span> Write() {
+    <span class="kw">auto</span> start = std::chrono::high_resolution_clock::now();
+    <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">0</span>; i &lt; max_loop; i++) {
+        {
+            lock_guard&lt;mutex&gt; lock(mu);
+            obj.Set(i<span class="dv">+1</span>);
+        }
+    }
+    <span class="kw">auto</span> end = std::chrono::high_resolution_clock::now();
+
+    <span class="co">// 4. 计算时间差并转换单位</span>
+    <span class="kw">auto</span> duration = std::chrono::duration_cast&lt;std::chrono::milliseconds&gt;(end - start);
+
+    <span class="co">// 输出结果</span>
+    std::cout &lt;&lt; <span class="st">&quot;Time taken: &quot;</span> &lt;&lt; duration.count() &lt;&lt; <span class="st">&quot; milliseconds</span><span class="ch">\n</span><span class="st">&quot;</span>;
+}
+
+<span class="dt">void</span> Read()
+{
+    <span class="dt">int</span> val = <span class="dv">0</span>;
+    <span class="kw">while</span> (val != max_loop) {
+        {
+            lock_guard&lt;mutex&gt; lock(mu);
+            val = obj.Get();
+        }
+    }
+}
+
+<span class="dt">int</span> main()
+{
+    obj_buffers.emplace_back(make_shared&lt;Obj&gt;());
+    obj_buffers.emplace_back(make_shared&lt;Obj&gt;());
+
+    thread read1(Read);
+    thread read2(Read);
+    sleep(<span class="dv">1</span>);
+    thread wThread(Write);
+    wThread.join();
+    read1.join();
+    read2.join();
+
+    <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre></div>
 <h2 id="内存池">内存池</h2>
 <h3 id="内存池概述">内存池概述</h3>
 <p>我们在进行数据库操作的时候为了提高数据库（关系型数据库）的访问瓶颈，除了在服务器端增加缓存服务器（例如 redis）缓存常用的数据之外，还可以增加连接池，来提高数据库服务器的访问效率。一般来说，对于数据库操作都是在访问数据库的时候创建连接，访问完毕断开连接。但是如果在高并发情况下，有些需要频繁处理的操作就会消耗很多的资源和时间，比如：</p>
