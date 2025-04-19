@@ -1874,41 +1874,40 @@ f3(<span class="dv">1</span>, <span class="dv">2</span>);       <span class="co"
 <li>节省内存，提高程序运行效率。如何很多对象有相同的值，为这多个相同的值存储多个副本是很浪费空间的，所以最好做法是让所有对象都共享同一个值的实现。</li>
 </ol>
 </blockquote>
-<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">template</span>&lt;<span class="kw">class</span> T&gt;
-<span class="kw">class</span> Ref_count{
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="ot">#include &lt;atomic&gt;</span>
+
+<span class="kw">using</span> <span class="kw">namespace</span> std;
+
+<span class="kw">template</span> &lt;<span class="kw">typename</span> T&gt;
+<span class="kw">class</span> RefCount {
 <span class="kw">public</span>:
-    Ref_count(T *p): ptr(p), count(<span class="kw">new</span> <span class="dt">unsigned</span> <span class="dt">int</span>(<span class="dv">1</span>)) {}
-    Ref_count(<span class="dt">const</span> Ref_count&lt;T&gt; &amp;other){
-        count = other.count;
+    RefCount(T *p): ptr(p), count(<span class="kw">new</span> atomic&lt;<span class="dt">unsigned</span> <span class="dt">int</span>&gt;(<span class="dv">1</span>)){}
+    RefCount(<span class="dt">const</span> RefCount&lt;T&gt; &amp;other) {
         ptr = other.ptr;
+        count = other.count;
         increase();
     }
-    Ref_count&lt;T&gt; &amp; <span class="kw">operator</span>=(<span class="dt">const</span> Ref_count&lt;T&gt; &amp;other){
-        <span class="kw">if</span>(<span class="kw">this</span> != &amp;other){
+    RefCount&lt;T&gt; &amp; <span class="kw">operator</span>=(<span class="dt">const</span> RefCount&lt;T&gt; &amp;other) {
+        <span class="kw">if</span> (<span class="kw">this</span> != &amp;other)
+        {
             decrease();
-            count = other.count;
             ptr = other.ptr;
+            count = other.count;
             increase();
         }
         <span class="kw">return</span> *<span class="kw">this</span>;
     }
-    T * <span class="kw">operator</span>-&gt;() <span class="dt">const</span>{
-        <span class="kw">return</span> ptr;
-    }
-    T &amp; <span class="kw">operator</span>*() <span class="dt">const</span>{
-        <span class="kw">return</span> *ptr;
-    }
-    ~Ref_count(){
-        decrease();
-    }
+    T&amp; <span class="kw">operator</span>*() { <span class="kw">return</span> *ptr; } 
+    T* <span class="kw">operator</span>-&gt;() { <span class="kw">return</span> ptr; }
+    ~RefCount() { decrease(); }
 <span class="kw">private</span>:
     T *ptr;
-    <span class="dt">unsigned</span> <span class="dt">int</span> *count;
-    <span class="dt">void</span> decrease(){
-        printf(<span class="st">&quot;decrease </span><span class="ch">%d\n</span><span class="st">&quot;</span>, *ptr);
-        <span class="kw">if</span>(count){
-            (*count)--;
-            <span class="kw">if</span>(*count == <span class="dv">0</span>){
+    atomic&lt;<span class="dt">unsigned</span> <span class="dt">int</span>&gt; *count;
+    <span class="dt">void</span> decrease() {
+        <span class="kw">if</span> (count) {
+            --(*count);
+            <span class="kw">if</span> (count-&gt;load() == <span class="dv">0</span>) {
+                printf(<span class="st">&quot;free</span><span class="ch">\n</span><span class="st">&quot;</span>);
                 <span class="kw">delete</span> ptr;
                 ptr = <span class="kw">nullptr</span>;
                 <span class="kw">delete</span> count;
@@ -1916,22 +1915,9 @@ f3(<span class="dv">1</span>, <span class="dv">2</span>);       <span class="co"
             }
         }
     }
-    <span class="dt">void</span> increase(){
-        printf(<span class="st">&quot;increase </span><span class="ch">%d\n</span><span class="st">&quot;</span>, *ptr);
-        <span class="kw">if</span>(count){
-            (*count)++;
-        }
-    }
-
-    T* get() <span class="dt">const</span>{
-        <span class="kw">return</span> ptr;
-    }
-
-    <span class="dt">int</span> get_count() <span class="dt">const</span>{
-        <span class="kw">if</span>(!count){
-            <span class="kw">return</span> <span class="dv">0</span>;
-        }
-        <span class="kw">return</span> *count;
+    <span class="dt">void</span> increase() {
+        <span class="kw">if</span> (count)
+            ++(*count);
     }
 };</code></pre></div>
 <p><strong>注意千万不要吧一个原生指针给多个共享指针管理，会造成错误，具体看我的注释。</strong></p>

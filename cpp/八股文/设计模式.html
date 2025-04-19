@@ -17,14 +17,68 @@
 <li>普通懒汉式会让线程不安全</li>
 </ul>
 <p>因为不加锁的话当线程并发时会产生多个实例，导致线程不安全</p>
-<p>```c++ /// 普通懒汉式实现 -- 线程不安全 // #include <iostream> // std::cout #include <mutex> // std::mutex #include <pthread.h> // pthread_create</p>
-<p>class SingleInstance { public: // 获取单例对象 static SingleInstance <em>GetInstance(); // 释放单例，进程退出时调用 static void deleteInstance(); // 打印单例地址 void Print(); private: // 将其构造和析构成为私有的, 禁止外部构造和析构 SingleInstance(); ~SingleInstance(); // 将其拷贝构造和赋值构造成为私有函数, 禁止外部拷贝和赋值 SingleInstance(const SingleInstance &amp;signal); const SingleInstance &amp;operator=(const SingleInstance &amp;signal); private: // 唯一单例对象指针 static SingleInstance </em>m_SingleInstance; };</p>
-<p>//初始化静态成员变量 SingleInstance *SingleInstance::m_SingleInstance = NULL;</p>
-<p>SingleInstance* SingleInstance::GetInstance() { if (m_SingleInstance == NULL) { m_SingleInstance = new (std::nothrow) SingleInstance; // 没有加锁是线程不安全的，当线程并发时会创建多个实例 } return m_SingleInstance; }</p>
-<p>void SingleInstance::deleteInstance() { if (m_SingleInstance) { delete m_SingleInstance; m_SingleInstance = NULL; } }</p>
-<p>void SingleInstance::Print() { std::cout &lt;&lt; &quot;我的实例内存地址是:&quot; &lt;&lt; this &lt;&lt; std::endl; }</p>
-<p>SingleInstance::SingleInstance() { std::cout &lt;&lt; &quot;构造函数&quot; &lt;&lt; std::endl; }</p>
-<p>SingleInstance::~SingleInstance() { std::cout &lt;&lt; &quot;析构函数&quot; &lt;&lt; std::endl; } /// 普通懒汉式实现 -- 线程不安全 // ```</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">///</span>  普通懒汉式实现 -- 线程不安全 <span class="co">//</span>
+<span class="ot">#include &lt;iostream&gt; </span><span class="co">// std::cout</span>
+<span class="ot">#include &lt;mutex&gt;    </span><span class="co">// std::mutex</span>
+<span class="ot">#include &lt;pthread.h&gt; </span><span class="co">// pthread_create</span>
+
+<span class="kw">class</span> SingleInstance
+{
+<span class="kw">public</span>:
+    <span class="co">// 获取单例对象</span>
+    <span class="dt">static</span> SingleInstance *GetInstance();
+    <span class="co">// 释放单例，进程退出时调用</span>
+    <span class="dt">static</span> <span class="dt">void</span> deleteInstance();
+    <span class="co">// 打印单例地址</span>
+    <span class="dt">void</span> Print();
+<span class="kw">private</span>:
+    <span class="co">// 将其构造和析构成为私有的, 禁止外部构造和析构</span>
+    SingleInstance();
+    ~SingleInstance();
+    <span class="co">// 将其拷贝构造和赋值构造成为私有函数, 禁止外部拷贝和赋值</span>
+    SingleInstance(<span class="dt">const</span> SingleInstance &amp;signal);
+    <span class="dt">const</span> SingleInstance &amp;<span class="kw">operator</span>=(<span class="dt">const</span> SingleInstance &amp;signal);
+<span class="kw">private</span>:
+    <span class="co">// 唯一单例对象指针</span>
+    <span class="dt">static</span> SingleInstance *m_SingleInstance;
+};
+
+<span class="co">//初始化静态成员变量</span>
+SingleInstance *SingleInstance::m_SingleInstance = NULL;
+
+SingleInstance* SingleInstance::GetInstance()
+{
+    <span class="kw">if</span> (m_SingleInstance == NULL)
+    {
+        m_SingleInstance = <span class="kw">new</span> (std::nothrow) SingleInstance;  <span class="co">// 没有加锁是线程不安全的，当线程并发时会创建多个实例</span>
+    }
+    <span class="kw">return</span> m_SingleInstance;
+}
+
+<span class="dt">void</span> SingleInstance::deleteInstance()
+{
+    <span class="kw">if</span> (m_SingleInstance)
+    {
+        <span class="kw">delete</span> m_SingleInstance;
+        m_SingleInstance = NULL;
+    }
+}
+
+<span class="dt">void</span> SingleInstance::Print()
+{
+    std::cout &lt;&lt; <span class="st">&quot;我的实例内存地址是:&quot;</span><span class="co"> </span>&lt;&lt; <span class="kw">this</span> &lt;&lt; std::endl;
+}
+
+SingleInstance::SingleInstance()
+{
+    std::cout &lt;&lt; <span class="st">&quot;构造函数&quot;</span><span class="co"> </span>&lt;&lt; std::endl;
+}
+
+SingleInstance::~SingleInstance()
+{
+    std::cout &lt;&lt; <span class="st">&quot;析构函数&quot;</span><span class="co"> </span>&lt;&lt; std::endl;
+}
+<span class="co">///</span>  普通懒汉式实现 -- 线程不安全  <span class="co">//</span></code></pre></div>
 <ul>
 <li>线程安全、内存安全的懒汉式</li>
 </ul>
@@ -43,27 +97,80 @@
 <li>get_instance()函数要返回引用而尽量不要返回指针，</li>
 </ol>
 </blockquote>
-<p>```c++ /// 内部静态变量的懒汉实现 // class Singleton { public: ~Singleton(){ std::cout&lt;&lt;&quot;destructor called!&quot;&lt;&lt;std::endl; } //或者放到private中 Singleton(const Singleton&amp;)=delete; Singleton&amp; operator=(const Singleton&amp;)=delete; static Singleton&amp; get_instance(){ //关键点！ static Singleton instance; return instance; } //不推荐，返回指针的方式 /<em>static Singleton</em> get_instance(){ static Singleton instance; return &amp;instance; }*/ private: Singleton(){ std::cout&lt;&lt;&quot;constructor called!&quot;&lt;<std::endl;
-      }
-  };
-  
-  ```
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">///</span>  内部静态变量的懒汉实现  <span class="co">//</span>
+<span class="kw">class</span> Singleton
+{
+<span class="kw">public</span>:
+    ~Singleton(){
+        std::cout&lt;&lt;<span class="st">&quot;destructor called!&quot;</span><span class="co">&lt;&lt;</span>std::endl;
+    }
+    <span class="co">//或者放到private中</span>
+    Singleton(<span class="dt">const</span> Singleton&amp;)=<span class="kw">delete</span>;
+    Singleton&amp; <span class="kw">operator</span>=(<span class="dt">const</span> Singleton&amp;)=<span class="kw">delete</span>;
+    <span class="dt">static</span> Singleton&amp; get_instance(){
+        <span class="co">//关键点！</span>
+        <span class="dt">static</span> Singleton instance;
+        <span class="kw">return</span> instance;
+    }
+    <span class="co">//不推荐，返回指针的方式</span>
+    <span class="co">/*static Singleton* get_instance(){</span>
+<span class="co">        static Singleton instance;</span>
+<span class="co">        return &amp;instance;</span>
+<span class="co">    }*/</span>
+<span class="kw">private</span>:
+    Singleton(){
+        std::cout&lt;&lt;<span class="st">&quot;constructor called!&quot;</span><span class="co">&lt;&lt;</span>std::endl;
+    }
+};</code></pre></div>
+<blockquote>
+<p>使用锁、共享指针实现的懒汉式单例模式</p>
+<ul>
+<li>基于 shared_ptr, 用了C++比较倡导的 RAII思想，用对象管理资源,当 shared_ptr 析构的时候，new 出来的对象也会被 delete掉。以此避免内存泄漏。</li>
+<li>加了锁，使用互斥量来达到线程安全。这里使用了两个 if判断语句的技术称为<strong>双检锁</strong>；好处是，只有判断指针为空的时候才加锁，避免每次调用 get_instance的方法都加锁，锁的开销毕竟还是有点大的。</li>
+</ul>
+<p>不足之处在于： 使用智能指针会要求用户也得使用智能指针，非必要不应该提出这种约束; 使用锁也有开销; 同时代码量也增多了，实现上我们希望越简单越好。</p>
+</blockquote>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="ot">#include &lt;iostream&gt;</span>
+<span class="ot">#include &lt;memory&gt; </span><span class="co">// shared_ptr</span>
+<span class="ot">#include &lt;mutex&gt;  </span><span class="co">// mutex</span>
 
-  > 使用锁、共享指针实现的懒汉式单例模式 &gt; &gt; - 基于 shared_ptr, 用了C++比较倡导的 RAII思想，用对象管理资源,当 shared_ptr 析构的时候，new 出来的对象也会被 delete掉。以此避免内存泄漏。 &gt; - 加了锁，使用互斥量来达到线程安全。这里使用了两个 if判断语句的技术称为<strong>双检锁</strong>；好处是，只有判断指针为空的时候才加锁，避免每次调用 get_instance的方法都加锁，锁的开销毕竟还是有点大的。 &gt; &gt; 不足之处在于： 使用智能指针会要求用户也得使用智能指针，非必要不应该提出这种约束; 使用锁也有开销; 同时代码量也增多了，实现上我们希望越简单越好。</p>
-<p>```c++ #include <iostream> #include <memory> // shared_ptr #include <mutex> // mutex</p>
-<p>// version 2: // with problems below fixed: // 1. thread is safe now // 2. memory doesn't leak</p>
-<p>class Singleton { public: typedef std::shared_ptr<Singleton> Ptr; ~Singleton() { std::cout &lt;&lt; &quot;destructor called!&quot; &lt;&lt; std::endl; } Singleton(Singleton&amp;) = delete; Singleton&amp; operator=(const Singleton&amp;) = delete; static Ptr get_instance() {</p>
-<pre><code>      // &quot;double checked lock&quot;
-      if (m_instance_ptr == nullptr) {
-          std::lock_guard&lt;std::mutex&gt; lk(m_mutex);
-          if (m_instance_ptr == nullptr) {
-              m_instance_ptr = std::shared_ptr&lt;Singleton&gt;(new Singleton);
-          }
-      }
-      return m_instance_ptr;
-  }</code></pre>
-<p>private: Singleton() { std::cout &lt;&lt; &quot;constructor called!&quot; &lt;&lt; std::endl; } static Ptr m_instance_ptr; static std::mutex m_mutex; };</p>
-<p>// initialization static variables out of class Singleton::Ptr Singleton::m_instance_ptr = nullptr; std::mutex Singleton::m_mutex; ```</p>
+<span class="co">// version 2:</span>
+<span class="co">// with problems below fixed:</span>
+<span class="co">// 1. thread is safe now</span>
+<span class="co">// 2. memory doesn&#39;t leak</span>
+
+<span class="kw">class</span> Singleton {
+<span class="kw">public</span>:
+    <span class="kw">typedef</span> std::shared_ptr&lt;Singleton&gt; Ptr;
+    ~Singleton() {
+        std::cout &lt;&lt; <span class="st">&quot;destructor called!&quot;</span> &lt;&lt; std::endl;
+    }
+    Singleton(Singleton&amp;) = <span class="kw">delete</span>;
+    Singleton&amp; <span class="kw">operator</span>=(<span class="dt">const</span> Singleton&amp;) = <span class="kw">delete</span>;
+    <span class="dt">static</span> Ptr get_instance() {
+
+        <span class="co">// &quot;double checked lock&quot;</span>
+        <span class="kw">if</span> (m_instance_ptr == <span class="kw">nullptr</span>) {
+            std::lock_guard&lt;std::mutex&gt; lk(m_mutex);
+            <span class="kw">if</span> (m_instance_ptr == <span class="kw">nullptr</span>) {
+                m_instance_ptr = std::shared_ptr&lt;Singleton&gt;(<span class="kw">new</span> Singleton);
+            }
+        }
+        <span class="kw">return</span> m_instance_ptr;
+    }
+
+
+<span class="kw">private</span>:
+    Singleton() {
+        std::cout &lt;&lt; <span class="st">&quot;constructor called!&quot;</span> &lt;&lt; std::endl;
+    }
+    <span class="dt">static</span> Ptr m_instance_ptr;
+    <span class="dt">static</span> std::mutex m_mutex;
+};
+
+<span class="co">// initialization static variables out of class</span>
+Singleton::Ptr Singleton::m_instance_ptr = <span class="kw">nullptr</span>;
+std::mutex Singleton::m_mutex;</code></pre></div>
 <h2 id="饿汉式">饿汉式</h2>
 <div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">
 <span class="co">// 饿汉实现 /</span>

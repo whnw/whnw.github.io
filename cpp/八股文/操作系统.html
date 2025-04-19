@@ -14,6 +14,7 @@
 <p>对于线程来讲，所有的字段都是和进程一样的（本来就是一个结构体来表示的）。包括状态、pid、task 树关系、地址空间、文件系统信息、打开的文件信息等等字段，线程也都有。在 Linux 下的线程还有另外一个名字，叫轻量级进程。</p>
 <p><strong>进程中</strong>pid 就是我们平时常说的进程 pid，在 Linux 中，每一个 task_struct 都需要被唯一的标识，它的 pid 就是唯一标识号。</p>
 <p><strong>对于线程来说</strong>，我们假如一个进程下创建了多个线程出来。那么每个线程的 pid 都是不同的。但是我们一般又需要记录线程是属于哪个进程的。这时候，tgid 就派上用场了，通过 tgid 字段来表示自己所归属的进程 ID。</p>
+<p><code># 查看进程的所有线程 ls /proc/&lt;pid&gt;/task/</code></p>
 <p><img src="https://cdn.jsdelivr.net/gh/guaguaupup/cloudimg/data/202210121011428.png" alt="图片" style="zoom:80%;float:left" /></p>
 <p>事实上，进程线程创建的时候，使用的函数看起来不一样。但实际在底层实现上，最终都是使用同一个函数来实现的。</p>
 <p><img src="https://cdn.jsdelivr.net/gh/guaguaupup/cloudimg/data/202210121013610.png" alt="图片" style="zoom:67%;float:left" /></p>
@@ -54,6 +55,9 @@
 <p>从概念上来讲，线程是进程的一部分，只是任务调度相关的部分，所以我们才说，“线程是调度的最小单位”。进程拥有着资源，这些资源不属于某一个特定线程，因为所有线程共享进程拥有的资源，所以我们才说，“进程是资源分配的最小单位”。</p>
 <p>我们fork一个新的进程时，实际上“伴生”了一个线程，而这个唯一的线程，实际上代表了这个进程参与到任务调度。在linux中，不管进程还是线程，都用<code>struct task_struct</code>描述。<code>struct mm_struct *mm</code>，这是一个指针，指向实际的内存资源。同一个进程内的所有线程，他们都使用相同的资源，只需要把对应的资源指针指向相同的地址。</p>
 <p>Linux内核就好像淡化了“线程”的概念，每一个线程描述都是<code>struct task_struct</code>，他们都是一个独立的“进程”，都有着自己的进程号，都参与任务调度，只不过指向相同的进程资源。</p>
+<p>缓存未命中：L1/L2缓存失效显著增加延迟</p>
+<p>TLB冲刷：地址空间切换导致TLB失效</p>
+<p>NUMA架构：跨节点访问内存增加延迟</p>
 <h2 id="任务调度的开销">任务调度的开销</h2>
 <p><strong>任务调度的主要开销</strong></p>
 <ol style="list-style-type: decimal">
@@ -94,6 +98,7 @@
 </ul>
 <p>缺点：管道本质上是通过内核交换数据的，因此通信效率很低，不适合频繁交换数据的情况。</p>
 <p>匿名管道的周期随着进程的创建而创建，销毁而销毁。</p>
+<p>只要进程能继承到同一个管道的文件描述符，就可以通信。fork下会继承文件描述符，pipe[0]读 pipe[1]写</p>
 <ul>
 <li><strong>消息队列</strong></li>
 </ul>
@@ -368,6 +373,14 @@ reader () {  <span class="co">// 读者进程</span>
 <p>多级表示有多个队列，每个队列优先级从高到低，同时优先级越高时间片越短。</p>
 <p>反馈表示如果有新的进程加入优先级高的队列时，立刻停止当前正在运行的进程，转而去运行优先级高的队列；</p>
 <p><img src="https://cdn.jsdelivr.net/gh/luogou/cloudimg/data/202203181732936.jpeg" alt="多级反馈队列" style="zoom: 67%;float:left" /></p>
+<p>最高优先级队列(Q0) ← 最短时间片(如8ms) ↓ 中级优先级队列(Q1) ← 中等时间片(如16ms) ↓ 最低优先级队列(Qn) ← 最长时间片(如32ms)</p>
+<p>新进程进入：放入最高优先级队列(Q0)</p>
+<p>时间片用完：</p>
+<p>若进程主动放弃CPU（如I/O操作），保持原优先级</p>
+<p>若进程用完整个时间片，降低优先级到下一级队列</p>
+<p>优先级提升：</p>
+<p>定期将所有进程移到最高优先级队列（防止饥饿）</p>
+<p>典型提升周期：1秒钟</p>
 <p>其工作流程如下：</p>
 <ol style="list-style-type: decimal">
 <li>设置了多个队列，赋予每个队列不同的优先级，每个队列优先级从高到低，同时优先级越高时间片越短；</li>
@@ -407,7 +420,11 @@ reader () {  <span class="co">// 读者进程</span>
 </ul>
 <p>条件变量提供了线程间的通知机制：当某个共享数据到达某个值的时候，唤醒等待这个共享数据的线程。</p>
 <p>条件变量要结合互斥锁使用，如下图代码：</p>
-<p><code>c   pthread_mutex_lock(&amp;mutex);　   　　while(条件为假)   　　　　pthread_cond_wait(&amp;cond,&amp;mutex);　　   　　执行某种操作   pthread_mutex_unlock(&amp;mutex);</code></p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">pthread_mutex_lock(&amp;mutex);　
+<span class="kw">while</span>(条件为假)
+pthread_cond_wait(&amp;cond,&amp;mutex);　　
+执行某种操作
+pthread_mutex_unlock(&amp;mutex);</code></pre></div>
 <p>也就是说，一个线程要等到临界区的共享数据达到某种状态时再进行某种操作，而这个状态的成立，则是由另外一个进程/线程来完成后发送信号来通知的。</p>
 <h1 id="线程是如何实现的">线程是如何实现的？</h1>
 <p>这个看《操作系统》总结的也有</p>
@@ -891,8 +908,18 @@ reader () {  <span class="co">// 读者进程</span>
 <ul>
 <li>由一个例子引出内存对齐</li>
 </ul>
-<p>```c //32位系统 #include<stdio.h> struct{ int x; char y; }s;</p>
-<p>int main() { printf(&quot;%d&quot;,sizeof(s); // 输出8 return 0; } ```</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="co">//32位系统</span>
+<span class="ot">#include&lt;stdio.h&gt;</span>
+<span class="kw">struct</span>{
+    <span class="dt">int</span> x;
+    <span class="dt">char</span> y;
+}s;
+
+<span class="dt">int</span> main()
+{
+    printf(<span class="st">&quot;%d</span><span class="ch">\n</span><span class="st">&quot;</span>,<span class="kw">sizeof</span>(s);  <span class="co">// 输出8</span>
+    <span class="kw">return</span> <span class="dv">0</span>;
+}</code></pre></div>
 <p>上述代码实际得到的值是8byte，这就是内存对齐所导致的。</p>
 <blockquote>
 <p>从理论上来讲，任何类型的变量可以从任意地址开始存放。但是实际上计算机对基本数据类型在内存中的存放位置有限制，会要求数据首地址的值是某个数（通常是4或8）的整数倍，这就是内存对齐。</p>
@@ -1031,12 +1058,21 @@ reader () {  <span class="co">// 读者进程</span>
 </ul>
 <p>主要是针对主机字节序和网络字节序来说的。我们用的x86架构的处理器一般都是小端序存储数据，但是网络字节序是TCP/IP中规定好的数据表示格式，RFC1700规定使用“大端”字节序为网络字节序，独立于处理器操作系统。</p>
 <p>在Linux网络编程中，会使用下列C标准库函数进行字节之间的转换</p>
-<p>```c #include &lt;arpa/inet.h&gt;</p>
-<p>uint32_t htonl(uint32_t hostlong); //把uint32_t类型从主机序转换到网络序 uint16_t htons(uint16_t hostshort); //把uint16_t类型从主机序转换到网络序 uint32_t ntohl(uint32_t netlong); //把uint32_t类型从网络序转换到主机序 uint16_t ntohs(uint16_t netshort); //把uint16_t类型从网络序转换到主机序 ```</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="ot">#include &lt;arpa/inet.h&gt;</span>
+
+<span class="dt">uint32_t</span> htonl(<span class="dt">uint32_t</span> hostlong);      <span class="co">//把uint32_t类型从主机序转换到网络序</span>
+<span class="dt">uint16_t</span> htons(<span class="dt">uint16_t</span> hostshort);     <span class="co">//把uint16_t类型从主机序转换到网络序</span>
+<span class="dt">uint32_t</span> ntohl(<span class="dt">uint32_t</span> netlong);       <span class="co">//把uint32_t类型从网络序转换到主机序</span>
+<span class="dt">uint16_t</span> ntohs(<span class="dt">uint16_t</span> netshort);      <span class="co">//把uint16_t类型从网络序转换到主机序</span></code></pre></div>
 <ul>
 <li>如何判断本机是大端序还是小端序？</li>
 </ul>
-<p><code>c   int i=1;      char *p=(char *)&amp;i;      if(*p == 1)            printf(&quot;小端模式&quot;); //小端序是低位字节在前，高位字节在后   else // (*p == 0)       printf(&quot;大端模式&quot;);</code></p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c"><span class="dt">int</span> i=<span class="dv">1</span>;   
+<span class="dt">char</span> *p=(<span class="dt">char</span> *)&amp;i;   
+<span class="kw">if</span>(*p == <span class="dv">1</span>)     
+    printf(<span class="st">&quot;小端模式&quot;</span>); <span class="co">//小端序是低位字节在前，高位字节在后</span>
+<span class="kw">else</span> <span class="co">// (*p == 0)</span>
+    printf(<span class="st">&quot;大端模式&quot;</span>);</code></pre></div>
 <h1 id="操作系统是怎么进行进程管理的">操作系统是怎么进行进程管理的？</h1>
 <div class="figure">
 <img src="https://cdn.jsdelivr.net/gh/luogou/cloudimg/data/20210901111845.jpeg" alt="img" />

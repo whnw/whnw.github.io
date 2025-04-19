@@ -2826,41 +2826,40 @@ void swap(Type& x, Type& y) noexcept  //C++11
 > 2. 节省内存，提高程序运行效率。如何很多对象有相同的值，为这多个相同的值存储多个副本是很浪费空间的，所以最好做法是让所有对象都共享同一个值的实现。
 
 ```c++
-template<class T>
-class Ref_count{
+#include <atomic>
+
+using namespace std;
+
+template <typename T>
+class RefCount {
 public:
-	Ref_count(T *p): ptr(p), count(new unsigned int(1)) {}
-	Ref_count(const Ref_count<T> &other){
-		count = other.count;
+	RefCount(T *p): ptr(p), count(new atomic<unsigned int>(1)){}
+	RefCount(const RefCount<T> &other) {
 		ptr = other.ptr;
+		count = other.count;
 		increase();
 	}
-	Ref_count<T> & operator=(const Ref_count<T> &other){
-		if(this != &other){
+	RefCount<T> & operator=(const RefCount<T> &other) {
+		if (this != &other)
+		{
 			decrease();
-			count = other.count;
 			ptr = other.ptr;
+			count = other.count;
 			increase();
 		}
 		return *this;
 	}
-	T * operator->() const{
-		return ptr;
-	}
-	T & operator*() const{
-		return *ptr;
-	}
-	~Ref_count(){
-		decrease();
-	}
+	T& operator*() { return *ptr; } 
+	T* operator->() { return ptr; }
+	~RefCount() { decrease(); }
 private:
 	T *ptr;
-	unsigned int *count;
-	void decrease(){
-		printf("decrease %d\n", *ptr);
-		if(count){
-			(*count)--;
-			if(*count == 0){
+	atomic<unsigned int> *count;
+	void decrease() {
+		if (count) {
+			--(*count);
+			if (count->load() == 0) {
+				printf("free\n");
 				delete ptr;
 				ptr = nullptr;
 				delete count;
@@ -2868,23 +2867,10 @@ private:
 			}
 		}
 	}
-	void increase(){
-		printf("increase %d\n", *ptr);
-		if(count){
-			(*count)++;
-		}
+	void increase() {
+		if (count)
+			++(*count);
 	}
-
-    T* get() const{
-        return ptr;
-    }
-
-    int get_count() const{
-        if(!count){
-            return 0;
-        }
-        return *count;
-    }
 };
 ```
 

@@ -226,6 +226,12 @@ int socket(int domain,int type,int protocol);</code></pre>
 <blockquote>
 <p>close()函数表示完全断开套接字链接，并且不能收发任何数据。很显然这样做是不好的，若A主机断开连接后，完全无法调用接收数据和发送数据相关函数，这会导致B向A发送数据，A必须接受的数据也被销毁</p>
 </blockquote>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">shutdown(sockfd, SHUT_WR);  <span class="co">// 先关闭写端</span>
+<span class="dt">char</span> buffer[<span class="dv">1024</span>];
+<span class="kw">while</span> (recv(sockfd, buffer, <span class="kw">sizeof</span>(buffer), <span class="dv">0</span> &gt; <span class="dv">0</span>) {
+    <span class="co">// 读取剩余数据（如果有）</span>
+}
+close(sockfd);  <span class="co">// 最后完全关闭</span></code></pre></div>
 <p>套接字中会生成两个I/O流，如下图：</p>
 <div class="figure">
 <img src="https://cdn.jsdelivr.net/gh/luogou/cloudimg/data/20210616133503.png" alt="TCP/IP网络编程》第7 章优雅的断开套接字的连接笔记_riba2534的博客-CSDN博客" />
@@ -753,16 +759,34 @@ int socket(int domain,int type,int protocol);</code></pre>
 <ul>
 <li>错误写法</li>
 </ul>
-<p>```c //threadA pthread_mutex_lock(&amp;mutex); while (false == ready) { pthread_cond_wait(&amp;cond, &amp;mutex); } pthread_mutex_unlock(&amp;mutex);</p>
-<p>//threadB ready = true; pthread_cond_signal(&amp;cond); ```</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">  <span class="co">//threadA</span>
+  pthread_mutex_lock(&amp;mutex);
+  <span class="kw">while</span> (false == ready) {
+     pthread_cond_wait(&amp;cond, &amp;mutex);
+  }
+  pthread_mutex_unlock(&amp;mutex);
+  
+  <span class="co">//threadB</span>
+  ready = true;
+  pthread_cond_signal(&amp;cond);</code></pre></div>
 <p>这个写法为什么有错误？如图：</p>
 <p><img src="https://cdn.jsdelivr.net/gh/luogou/cloudimg/data/202203181035470.jpeg" alt="img" style="zoom:80%;float:left" /></p>
 <p>ThreadA进入while循环后，准备进入唤醒队列，此时ThreadB进来横插一脚，把<code>ready</code>改成<code>true</code>然后提前唤醒，这个时候线程A还没有进入唤醒队列，因此A会丢失唤醒条件进而永久wait</p>
 <ul>
 <li>正确写法</li>
 </ul>
-<p>```c //Thread A pthread_mutex_lock(&amp;mutex); while (false == ready) { pthread_cond_wait(&amp;cond, &amp;mutex); } pthread_mutex_unlock(&amp;mutex);</p>
-<p>//Thread B pthread_mutex_lock(&amp;mutex); ready = true; pthread_mutex_unlock(&amp;mutex); pthread_cond_signal(&amp;cond); ```</p>
+<div class="sourceCode"><pre class="sourceCode c"><code class="sourceCode c">  <span class="co">//Thread A</span>
+  pthread_mutex_lock(&amp;mutex);
+  <span class="kw">while</span> (false == ready) {
+      pthread_cond_wait(&amp;cond, &amp;mutex);
+  }
+  pthread_mutex_unlock(&amp;mutex);
+  
+  <span class="co">//Thread B</span>
+  pthread_mutex_lock(&amp;mutex);
+  ready = true;
+  pthread_mutex_unlock(&amp;mutex);
+  pthread_cond_signal(&amp;cond);</code></pre></div>
 <p><a href="https://zhuanlan.zhihu.com/p/55123862">参考链接</a></p>
 <h1 id="什么是虚假唤醒">什么是虚假唤醒？</h1>
 <p>一般来说我们要在等待wait的时候用while循环。因为会产生虚假唤醒。</p>
@@ -835,6 +859,18 @@ int socket(int domain,int type,int protocol);</code></pre>
 <li>关闭文件描述符</li>
 </ol>
 <p>子进程会继承已经打开的文件，它们占用系统资源，且可能导致所在文件系统无法卸载。此时守护进程与终端脱离，常说的输入、输出、错误描述符也应该关闭。</p>
+<ol style="list-style-type: decimal">
+<li>第一次fork的主要目的 脱离终端控制：</li>
+</ol>
+<p>第一次fork后，父进程退出，子进程成为孤儿进程，被init进程(PID=1)收养</p>
+<p>子进程不再与原来的终端关联，成为新会话的领头进程(session leader)</p>
+<p>通过setsid()创建新会话，使进程完全脱离控制终端</p>
+<ol start="2" style="list-style-type: decimal">
+<li>第二次fork的关键原因 防止重新获取终端控制：</li>
+</ol>
+<p>第一次fork后的子进程是会话首进程(session leader)，它有资格重新获取控制终端</p>
+<p>如果这个进程打开终端设备，它会再次成为控制终端</p>
+<p>第二次fork产生的新进程不再是会话首进程，因此无法重新获取控制终端</p>
 <div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">pid_t pid, sid;
 <span class="dt">int</span> i;
 pid = fork(); <span class="co">// 第1步</span>
