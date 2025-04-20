@@ -477,6 +477,7 @@ close(sockfd);  <span class="co">// 最后完全关闭</span></code></pre></div>
 <p>select函数将许多个文件描述符集中到一起进行监视。</p>
 <p>使用fd_set数组保存被监视的文件描述符的变化，这个数组是以位存储在内核中的。即该数组所在的索引就是对应文件描述符的id。</p>
 <p>首先创建一个保存监视的数组<code>fd_set set</code>，然后将所有文件描述符的状态初始化为0 <code>FD_ZERO(&amp;set)</code>，再用<code>FD_ISSET(i,&amp;set)</code>查找发生状态的文件描述符，循环查找。</p>
+<p>** select第一个参数是传入最大描述符的数量，受FD_SETSIZE限制，修改需要重新编译 ** 另外每个进程有最大可打开文件数量的限制，需要调整，当然这个限制epoll也会受到影响</p>
 <ul>
 <li>存在额问题</li>
 </ul>

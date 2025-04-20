@@ -1,7 +1,9 @@
 <h1 id="手撕memcpy"><strong>手撕memcpy</strong></h1>
 <blockquote>
 <p>memcpy函数是c和c++使用的内存拷贝函数，函数原型是：</p>
+</blockquote>
 <div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> *memcpy(<span class="dt">void</span>*dest, <span class="dt">const</span> <span class="dt">void</span> *src, size_t n);</code></pre></div>
+<blockquote>
 <p>表示由src指向地址为起始地址的连续n个字节的数据复制到以dest指向地址为起始地址的空间内。</p>
 <p>与strcpy相比，memcpy并不是遇到''就结束，而是一定会拷贝完n个字节。</p>
 </blockquote>
@@ -44,7 +46,24 @@
 <p>动画演示如图：</p>
 <p><img src="https://cdn.jsdelivr.net/gh/luogou/cloudimg/data/20210828142217.gif" alt="在这里插入图片描述" style="zoom: 50%;float:left" /></p>
 <p>代码如下：</p>
-<p><code>c++   void Straight_Insertion_Sort(int a[],int length){     for (int i = 1;i &lt; length;i++)      {         if (a[i]&lt;a[i-1]) {             int temp = a[i];             for (int j = i - 1;j &gt;= 0;j--) {                 a[j + 1] = a[j];                 if (a[j] &lt; temp) {                     a[j + 1] = temp;                     break;                 }                 if (j == 0 &amp;&amp; a[j] &gt; temp) {                     a[j] = temp;                 }             }         }     }   }</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> Straight_Insertion_Sort(<span class="dt">int</span> a[],<span class="dt">int</span> length){
+    <span class="kw">for</span> (<span class="dt">int</span> i = <span class="dv">1</span>;i &lt; length;i++) 
+    {
+        <span class="kw">if</span> (a[i]&lt;a[i<span class="dv">-1</span>]) {
+            <span class="dt">int</span> temp = a[i];
+            <span class="kw">for</span> (<span class="dt">int</span> j = i - <span class="dv">1</span>;j &gt;= <span class="dv">0</span>;j--) {
+                a[j + <span class="dv">1</span>] = a[j];
+                <span class="kw">if</span> (a[j] &lt; temp) {
+                    a[j + <span class="dv">1</span>] = temp;
+                    <span class="kw">break</span>;
+                }
+                <span class="kw">if</span> (j == <span class="dv">0</span> &amp;&amp; a[j] &gt; temp) {
+                    a[j] = temp;
+                }
+            }
+        }
+    }
+}</code></pre></div>
 <ul>
 <li>折半插入排序</li>
 </ul>
@@ -52,7 +71,27 @@
 <p>图片演示：</p>
 <p><img src="https://cdn.jsdelivr.net/gh/luogou/cloudimg/data/20210828142548.png" alt="在这里插入图片描述" style="zoom:50%;float:left" /></p>
 <p>代码如下：</p>
-<p><code>c++   void Binary_Insert_Sort(int a[],int length) {     int low, high, mid;     int i, j,temp;     for ( i = 1;i &lt; length;i++) {         low = 0;         high = i - 1;         temp = a[i];         while (low&lt;=high) {             mid = (low + high) / 2;             if (temp&lt;a[mid]) {                 high = mid - 1;             }             else {                 low = mid + 1;             }         }//while         for ( j = i - 1;j &gt; high;j--) {             a[j + 1] = a[j];         }         a[j + 1] = temp;     }//for(i)</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> Binary_Insert_Sort(<span class="dt">int</span> a[],<span class="dt">int</span> length) {
+    <span class="dt">int</span> low, high, mid;
+    <span class="dt">int</span> i, j,temp;
+    <span class="kw">for</span> ( i = <span class="dv">1</span>;i &lt; length;i++) {
+        low = <span class="dv">0</span>;
+        high = i - <span class="dv">1</span>;
+        temp = a[i];
+        <span class="kw">while</span> (low&lt;=high) {
+            mid = (low + high) / <span class="dv">2</span>;
+            <span class="kw">if</span> (temp&lt;a[mid]) {
+                high = mid - <span class="dv">1</span>;
+            }
+            <span class="kw">else</span> {
+                low = mid + <span class="dv">1</span>;
+            }
+        }<span class="co">//while</span>
+        <span class="kw">for</span> ( j = i - <span class="dv">1</span>;j &gt; high;j--) {
+            a[j + <span class="dv">1</span>] = a[j];
+        }
+        a[j + <span class="dv">1</span>] = temp;
+    }<span class="co">//for(i)</span></code></pre></div>
 <h2 id="冒泡排序on2"><strong>冒泡排序O(n<sup>2</sup>)</strong></h2>
 <p>思路：两两比较元素，顺序不同就交换</p>
 <p>图解：</p>
@@ -427,18 +466,84 @@
 <ul>
 <li>先序遍历·</li>
 </ul>
-<p><code>c++   /*对于任一结点cur：   1)访问结点cur，并将结点cur入栈;   2)判断结点cur的左孩子是否为空，若为空，则取栈顶结点并进行出栈操作，并将栈顶结点的右孩子置为当前的结点cur，循环至1);       若不为空，则将cur的左孩子置为当前的结点cur;   3)直到cur为NULL并且栈为空，则遍历结束。*/   void NonRecursive::PreTraverse(BinaryTree *T) {     stack&lt;BinaryTree *&gt; s;     BinaryTree *cur=T;     while (cur!=nullptr||!s.empty()) {         while (cur!=nullptr) {             cout &lt;&lt; cur-&gt;val &lt;&lt;&quot; &quot;;             s.push(cur);             cur = cur-&gt;leftchild;         }         //涉及到pop的操作所以判定条件是栈不为空         if (!s.empty()) {             cur = s.top();             s.pop();             cur = cur-&gt;rightchild;         }     }   }</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">/*对于任一结点cur：</span>
+<span class="co">1)访问结点cur，并将结点cur入栈;</span>
+<span class="co">2)判断结点cur的左孩子是否为空，若为空，则取栈顶结点并进行出栈操作，并将栈顶结点的右孩子置为当前的结点cur，循环至1);</span>
+<span class="co">    若不为空，则将cur的左孩子置为当前的结点cur;</span>
+<span class="co">3)直到cur为NULL并且栈为空，则遍历结束。*/</span>
+<span class="dt">void</span> NonRecursive::PreTraverse(BinaryTree *T) {
+    stack&lt;BinaryTree *&gt; s;
+    BinaryTree *cur=T;
+    <span class="kw">while</span> (cur!=<span class="kw">nullptr</span>||!s.empty()) {
+        <span class="kw">while</span> (cur!=<span class="kw">nullptr</span>) {
+            cout &lt;&lt; cur-&gt;val &lt;&lt;<span class="st">&quot; &quot;</span>;
+            s.push(cur);
+            cur = cur-&gt;leftchild;
+        }
+        <span class="co">//涉及到pop的操作所以判定条件是栈不为空</span>
+        <span class="kw">if</span> (!s.empty()) {
+            cur = s.top();
+            s.pop();
+            cur = cur-&gt;rightchild;
+        }
+    }
+}</code></pre></div>
 <ul>
 <li>中序遍历</li>
 </ul>
-<p>```c++ /<em>cur的左孩子置为当前的cur，然后对当前结点cur再进行相同的处理； 2)若其左孩子为空，则取栈顶元素并进行出栈操作，访问该栈顶结点，然后将当前的cur置为栈顶结点的右孩子； 3)直到cur为NULL并且栈为空则遍历结束 </em>/ void NonRecursive::MidTraverse(BinaryTree <em>T) { stack<BinaryTree *>s; BinaryTree </em>cur = T; while (cur!=nullptr||!s.empty()) { while (cur!=nullptr) { s.push(cur); cur = cur-&gt;leftchild; } if (cur==nullptr) { cur = s.top(); cout &lt;&lt; cur-&gt;val &lt;&lt; &quot; &quot;; s.pop(); } cur = cur-&gt;rightchild;</p>
-<pre><code>}
-cout &lt;&lt; endl;//回车换行</code></pre>
-<p>} ```</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">/*cur的左孩子置为当前的cur，然后对当前结点cur再进行相同的处理；</span>
+<span class="co">2)若其左孩子为空，则取栈顶元素并进行出栈操作，访问该栈顶结点，然后将当前的cur置为栈顶结点的右孩子；</span>
+<span class="co">3)直到cur为NULL并且栈为空则遍历结束</span>
+<span class="co">*/</span>
+<span class="dt">void</span> NonRecursive::MidTraverse(BinaryTree *T) {
+    stack&lt;BinaryTree *&gt;s;
+    BinaryTree *cur = T;
+    <span class="kw">while</span> (cur!=<span class="kw">nullptr</span>||!s.empty()) {
+        <span class="kw">while</span> (cur!=<span class="kw">nullptr</span>) {
+            s.push(cur);
+            cur = cur-&gt;leftchild;
+        }
+        <span class="kw">if</span> (cur==<span class="kw">nullptr</span>) {
+            cur = s.top();
+            cout &lt;&lt; cur-&gt;val &lt;&lt; <span class="st">&quot; &quot;</span>;
+            s.pop();
+        }
+        cur = cur-&gt;rightchild;
+
+    }
+    cout &lt;&lt; endl;<span class="co">//回车换行</span>
+}</code></pre></div>
 <ul>
 <li>后序遍历</li>
 </ul>
-<p><code>c++   //思想： 一共有两种情况   //①节点同时没有左孩子和右孩子，说明是根节点，可以遍历然后出栈；   //②或者不是根节点但同时左孩子和右孩子被访问过，也可以遍历后出栈   void NonRecursive::EndTraverse(BinaryTree *T) {     stack&lt;BinaryTree *&gt; s;     BinaryTree *cur ;     BinaryTree *pre = nullptr;     s.push(T);     while (!s.empty()) {         cur = s.top();         if ((cur-&gt;leftchild==nullptr&amp;&amp;cur-&gt;leftchild==nullptr)  //没有左孩子和右孩子了说明可以访问             ||  (pre!=nullptr&amp;&amp;  (pre==cur-&gt;leftchild||pre==cur-&gt;rightchild)) //存在子树同时左孩子和右孩子都被访问过了             ) {             cout &lt;&lt; cur-&gt;val&lt;&lt;&quot; &quot;;             s.pop();             pre = cur;         }         else {             //右孩子先入栈  左孩子后入栈             if (cur-&gt;rightchild!=nullptr) {                 s.push(cur-&gt;rightchild);             }             if (cur-&gt;leftchild!=nullptr) {                 s.push(cur-&gt;leftchild);             }         }     }   }</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//思想： 一共有两种情况</span>
+<span class="co">//①节点同时没有左孩子和右孩子，说明是根节点，可以遍历然后出栈；</span>
+<span class="co">//②或者不是根节点但同时左孩子和右孩子被访问过，也可以遍历后出栈</span>
+<span class="dt">void</span> NonRecursive::EndTraverse(BinaryTree *T) {
+    stack&lt;BinaryTree *&gt; s;
+    BinaryTree *cur ;
+    BinaryTree *pre = <span class="kw">nullptr</span>;
+    s.push(T);
+    <span class="kw">while</span> (!s.empty()) {
+        cur = s.top();
+        <span class="kw">if</span> ((cur-&gt;leftchild==<span class="kw">nullptr</span>&amp;&amp;cur-&gt;leftchild==<span class="kw">nullptr</span>)  <span class="co">//没有左孩子和右孩子了说明可以访问</span>
+            ||  (pre!=<span class="kw">nullptr</span>&amp;&amp;  (pre==cur-&gt;leftchild||pre==cur-&gt;rightchild)) <span class="co">//存在子树同时左孩子和右孩子都被访问过了</span>
+            ) {
+            cout &lt;&lt; cur-&gt;val&lt;&lt;<span class="st">&quot; &quot;</span>;
+            s.pop();
+            pre = cur;
+        }
+        <span class="kw">else</span> {
+            <span class="co">//右孩子先入栈  左孩子后入栈</span>
+            <span class="kw">if</span> (cur-&gt;rightchild!=<span class="kw">nullptr</span>) {
+                s.push(cur-&gt;rightchild);
+            }
+            <span class="kw">if</span> (cur-&gt;leftchild!=<span class="kw">nullptr</span>) {
+                s.push(cur-&gt;leftchild);
+            }
+        }
+    }
+}</code></pre></div>
 <h1 id="kmp算法">KMP算法</h1>
 <p><strong>字符串匹配问题：</strong>字符串 P 是否为字符串 S 的子串？如果是，它出现在 S 的哪些位置？” 其中 S 称为主串；P 称为模式串。如下图：</p>
 <p><img src="https://cdn.jsdelivr.net/gh/luogou/cloudimg/data/202203251651887.png" alt="img" style="zoom:33%;float:left" /></p>
@@ -744,28 +849,176 @@ cout &lt;&lt; endl;//回车换行</code></pre>
 <ul>
 <li>版本1：自己实现循环链表存储，没有用API</li>
 </ul>
-<p>```c++ /********************不用API的版本*************************/ /********************简单说一下思路*************************/ //1.首先hash表用的是unordered_map来实现，用来查找key对应的node节点，所以hash表应该是[key,node]形式存储 //2.LRUCache这个类实现双向链表的添加，删除，更新和遍历 //3.同时这个类还要实现get和put两个功能 //4.我这里用的是循环双向链表，因此查找链表尾端的元素为O(1)，正常的双向链表是O(n) //总结：最重要的就是hash表中的key对应的不是int而是一个node节点，这个要记住 #include<unordered_map> #include<iostream> struct Node{ int key; int value; Node* pre; Node* next; Node(){} Node(int k, int v):key(k), value(v), pre(nullptr), next(nullptr){} };</p>
-<p>class LRUCache{ private: //通过key可以找到位于链表中的节点 std::unordered_map<int, Node*> hash; int capacity; Node* head_node; public: LRUCache(int cap){ capacity = cap; head_node = new Node(); //初始化dummy_Node,next和pre都指向自己 head_node-&gt;next = head_node-&gt;pre = head_node; } //将新来的插入双向链表头部 void add_Node(Node* n); //将某个节点拿出来重新插入头部 void update_Node(Node* n); //移除链表中最后一个（最久未使用） void pop_back(); //输出LRU结构 void show(); int get(int key); void put(int key, int value); };</p>
-<p>//注意，该节点可能是新节点，也可能是已经存在的有重新入链表的节点 void LRUCache::add_Node(Node* n){ //表示当前节点n就是dummy的next节点，不用加入 if(n-&gt;pre == head_node){ return; } //将节点n插入head_node后面 n-&gt;pre = head_node; n-&gt;next = head_node-&gt;next; head_node-&gt;next-&gt;pre = n; head_node-&gt;next = n; }</p>
-<p>void LRUCache::update_Node(Node* n){ //表示当前节点n就是dummy的next节点，不用断掉 if(n-&gt;pre == head_node){ return; } n-&gt;next-&gt;pre = n-&gt;pre; n-&gt;pre-&gt;next = n-&gt;next; add_Node(n); }</p>
-<p>//弹出链表的最后一个，由于是循环链表，就是head_node-&gt;pre void LRUCache::pop_back(){ Node* tmp = head_node-&gt;pre; head_node-&gt;pre = tmp-&gt;pre; tmp-&gt;pre-&gt;next = head_node; //删除unordered_map中的key hash.erase(tmp-&gt;key); }</p>
-<p>void LRUCache::show(){ //链表中没有节点，退出 if(head_node-&gt;next = head_node){ return; } Node* tmp = head_node-&gt;next; while(tmp-&gt;next != head_node){ std::cout&lt;&lt;&quot;key:&quot;&lt;<tmp->key&lt;&lt;&quot;,vlaue:&quot;&lt;<tmp->value&lt;&lt;std::endl; } } int LRUCache::get(int key){ auto it = hash.find(key); if(it == hash.end()){ std::cout&lt;&lt;&quot;there is no key&quot;&lt;&lt;std::endl; return -1; } //取出key对应的node节点 Node* node = it-&gt;second; update_Node(node); return node-&gt;value;</p>
-<p>} void LRUCache::put(int key, int value){ auto it = hash.find(key); if(it == hash.end()){ Node* node = new Node(key, value); add_Node(node); hash.insert({key, node}); if(hash.size() &gt; capacity){</p>
-<pre><code>          pop_back();
-      }
-  }else{
-      it-&gt;second-&gt;value = value;
-      update_Node(it-&gt;second);
-  }</code></pre>
-<p>} ```</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">/********************不用API的版本*************************/</span>
+<span class="co">/********************简单说一下思路*************************/</span>
+<span class="co">//1.首先hash表用的是unordered_map来实现，用来查找key对应的node节点，所以hash表应该是[key,node]形式存储</span>
+<span class="co">//2.LRUCache这个类实现双向链表的添加，删除，更新和遍历</span>
+<span class="co">//3.同时这个类还要实现get和put两个功能</span>
+<span class="co">//4.我这里用的是循环双向链表，因此查找链表尾端的元素为O(1)，正常的双向链表是O(n)</span>
+<span class="co">//总结：最重要的就是hash表中的key对应的不是int而是一个node节点，这个要记住</span>
+<span class="ot">#include&lt;unordered_map&gt;</span>
+<span class="ot">#include&lt;iostream&gt;</span>
+<span class="kw">struct</span> Node{
+    <span class="dt">int</span> key;
+    <span class="dt">int</span> value;
+    Node* pre;
+    Node* next;
+    Node(){}
+    Node(<span class="dt">int</span> k, <span class="dt">int</span> v):key(k), value(v), pre(<span class="kw">nullptr</span>), next(<span class="kw">nullptr</span>){}
+};
+
+<span class="kw">class</span> LRUCache{
+<span class="kw">private</span>:
+    <span class="co">//通过key可以找到位于链表中的节点</span>
+    std::unordered_map&lt;<span class="dt">int</span>, Node*&gt; hash;
+    <span class="dt">int</span> capacity;
+    Node* head_node;
+<span class="kw">public</span>:
+    LRUCache(<span class="dt">int</span> cap){
+        capacity = cap;
+        head_node = <span class="kw">new</span> Node();
+        <span class="co">//初始化dummy_Node,next和pre都指向自己</span>
+        head_node-&gt;next = head_node-&gt;pre = head_node;
+    }
+    <span class="co">//将新来的插入双向链表头部</span>
+    <span class="dt">void</span> add_Node(Node* n);
+    <span class="co">//将某个节点拿出来重新插入头部</span>
+    <span class="dt">void</span> update_Node(Node* n);
+    <span class="co">//移除链表中最后一个（最久未使用）</span>
+    <span class="dt">void</span> pop_back();
+    <span class="co">//输出LRU结构</span>
+    <span class="dt">void</span> show();
+    <span class="dt">int</span> get(<span class="dt">int</span> key);
+    <span class="dt">void</span> put(<span class="dt">int</span> key, <span class="dt">int</span> value);
+};
+
+<span class="co">//注意，该节点可能是新节点，也可能是已经存在的有重新入链表的节点</span>
+<span class="dt">void</span> LRUCache::add_Node(Node* n){
+    <span class="co">//表示当前节点n就是dummy的next节点，不用加入</span>
+    <span class="kw">if</span>(n-&gt;pre == head_node){
+        <span class="kw">return</span>;
+    }
+    <span class="co">//将节点n插入head_node后面</span>
+    n-&gt;pre = head_node;
+    n-&gt;next = head_node-&gt;next;
+    head_node-&gt;next-&gt;pre = n;
+    head_node-&gt;next = n;
+}
+
+<span class="dt">void</span> LRUCache::update_Node(Node* n){
+    <span class="co">//表示当前节点n就是dummy的next节点，不用断掉</span>
+    <span class="kw">if</span>(n-&gt;pre == head_node){
+        <span class="kw">return</span>;
+    }
+    n-&gt;next-&gt;pre = n-&gt;pre;
+    n-&gt;pre-&gt;next = n-&gt;next;
+    add_Node(n);
+}
+
+<span class="co">//弹出链表的最后一个，由于是循环链表，就是head_node-&gt;pre</span>
+<span class="dt">void</span> LRUCache::pop_back(){
+    Node* tmp = head_node-&gt;pre;
+    head_node-&gt;pre = tmp-&gt;pre;
+    tmp-&gt;pre-&gt;next = head_node;
+    <span class="co">//删除unordered_map中的key</span>
+    hash.erase(tmp-&gt;key);
+}
+
+<span class="dt">void</span> LRUCache::show(){
+    <span class="co">//链表中没有节点，退出</span>
+    <span class="kw">if</span>(head_node-&gt;next = head_node){
+        <span class="kw">return</span>;
+    }
+    Node* tmp = head_node-&gt;next;
+    <span class="kw">while</span>(tmp-&gt;next != head_node){
+        std::cout&lt;&lt;<span class="st">&quot;key:&quot;</span>&lt;&lt;tmp-&gt;key&lt;&lt;<span class="st">&quot;,vlaue:&quot;</span>&lt;&lt;tmp-&gt;value&lt;&lt;std::endl;
+    }
+}
+<span class="dt">int</span> LRUCache::get(<span class="dt">int</span> key){
+    <span class="kw">auto</span> it = hash.find(key);
+    <span class="kw">if</span>(it == hash.end()){
+        std::cout&lt;&lt;<span class="st">&quot;there is no key&quot;</span>&lt;&lt;std::endl;
+        <span class="kw">return</span> <span class="dv">-1</span>;
+    }
+    <span class="co">//取出key对应的node节点</span>
+    Node* node = it-&gt;second;
+    update_Node(node);
+    <span class="kw">return</span> node-&gt;value;
+
+}
+<span class="dt">void</span> LRUCache::put(<span class="dt">int</span> key, <span class="dt">int</span> value){
+    <span class="kw">auto</span> it = hash.find(key);
+    <span class="kw">if</span>(it == hash.end()){
+        Node* node = <span class="kw">new</span> Node(key, value);
+        add_Node(node);
+        hash.insert({key, node});
+        <span class="kw">if</span>(hash.size() &gt; capacity){
+            
+            pop_back();
+        }
+    }<span class="kw">else</span>{
+        it-&gt;second-&gt;value = value;
+        update_Node(it-&gt;second);
+    }
+}</code></pre></div>
 <ul>
 <li>版本2：使用deque，为什么使用deque说的很清楚</li>
 </ul>
-<p>```c++ /****************注意unordered_map的插入************/</p>
-<p>#include <iostream> #include <deque> #include <unordered_map> #include <list></p>
-<p>class LRUCache{ private: int capacity; //1.之所以用deque不用list是因为移除尾部元素的时候，deque方便 //2.deque里面可以存储自定的node类型，也可以用pair表示，这里我用pair了 std::deque<std::pair<int, int>&gt; my_deque; //通过key找到对应key在deque中的位置 std::unordered_map&lt;int, std::deque<std::pair<int, int>&gt;::iterator&gt; hash; public: LRUCache(int cap):capacity(cap){} int get(int key); void put(int key, int value); };</p>
-<p>int LRUCache::get(int key){ if(hash.find(key) == hash.end()){ std::cout&lt;&lt;&quot;there is no key&quot;&lt;&lt;std::endl; return -1; } std::pair<int, int> tmp = *hash[key]; my_deque.erase(hash[key]); my_deque.push_front(tmp); //更新hash表中对应key位于deque的位置 hash[key] = my_deque.begin(); return tmp.second; }</p>
-<p>void LRUCache::put(int key, int value){ if(hash.find(key) == hash.end()){ if(my_deque.size() &gt;= capacity){ //把hash表中的抹除，然后删除deque中的 auto it = my_deque.back(); hash.erase(it.first); my_deque.pop_back(); my_deque.push_front({key, value}); hash.insert({key, my_deque.begin()}); }else{ my_deque.push_front({key, value}); hash.insert({key, my_deque.begin()}); } }else{ //更新就行 my_deque.erase(hash[key]); my_deque.push_front({key, value}); //更新hash表中key的位置 hash[key] = my_deque.begin(); } } ```</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">/****************注意unordered_map的插入************/</span>
+
+<span class="ot">#include &lt;iostream&gt;</span>
+<span class="ot">#include &lt;deque&gt;</span>
+<span class="ot">#include &lt;unordered_map&gt;</span>
+<span class="ot">#include &lt;list&gt;</span>
+
+<span class="kw">class</span> LRUCache{
+<span class="kw">private</span>:
+    <span class="dt">int</span> capacity;
+    <span class="co">//1.之所以用deque不用list是因为移除尾部元素的时候，deque方便</span>
+    <span class="co">//2.deque里面可以存储自定的node类型，也可以用pair表示，这里我用pair了</span>
+    std::deque&lt;std::pair&lt;<span class="dt">int</span>, <span class="dt">int</span>&gt;&gt; my_deque;
+    <span class="co">//通过key找到对应key在deque中的位置</span>
+    std::unordered_map&lt;<span class="dt">int</span>, std::deque&lt;std::pair&lt;<span class="dt">int</span>, <span class="dt">int</span>&gt;&gt;::iterator&gt; hash;
+<span class="kw">public</span>:
+    LRUCache(<span class="dt">int</span> cap):capacity(cap){}
+    <span class="dt">int</span> get(<span class="dt">int</span> key);
+    <span class="dt">void</span> put(<span class="dt">int</span> key, <span class="dt">int</span> value);
+};
+
+<span class="dt">int</span> LRUCache::get(<span class="dt">int</span> key){
+    <span class="kw">if</span>(hash.find(key) == hash.end()){
+        std::cout&lt;&lt;<span class="st">&quot;there is no key&quot;</span>&lt;&lt;std::endl;
+        <span class="kw">return</span> <span class="dv">-1</span>;
+    }
+    std::pair&lt;<span class="dt">int</span>, <span class="dt">int</span>&gt; tmp = *hash[key];
+    my_deque.erase(hash[key]);
+    my_deque.push_front(tmp);
+    <span class="co">//更新hash表中对应key位于deque的位置</span>
+    hash[key] = my_deque.begin();
+    <span class="kw">return</span> tmp.second;
+}
+
+<span class="dt">void</span> LRUCache::put(<span class="dt">int</span> key, <span class="dt">int</span> value){
+    <span class="kw">if</span>(hash.find(key) == hash.end()){
+        <span class="kw">if</span>(my_deque.size() &gt;= capacity){
+            <span class="co">//把hash表中的抹除，然后删除deque中的</span>
+            <span class="kw">auto</span> it = my_deque.back();
+            hash.erase(it.first);
+            my_deque.pop_back();
+            my_deque.push_front({key, value});
+            hash.insert({key, my_deque.begin()});
+        }<span class="kw">else</span>{
+            my_deque.push_front({key, value});
+            hash.insert({key, my_deque.begin()});
+        }
+    }<span class="kw">else</span>{
+        <span class="co">//更新就行</span>
+        my_deque.erase(hash[key]);
+        my_deque.push_front({key, value});
+        <span class="co">//更新hash表中key的位置</span>
+        hash[key] = my_deque.begin();
+    }
+}</code></pre></div>
 <h1 id="线性对数级排序算法详解重要">线性对数级排序算法详解（重要！）</h1>
 <h2 id="快速排序">快速排序</h2>
 <ul>
@@ -773,7 +1026,52 @@ cout &lt;&lt; endl;//回车换行</code></pre>
 </ul>
 <p>快速排序用的是分治的思想，即通过选取一个pivot将数组分成两个子数组A和B，子数组A中的元素均小于等于pivot，子数组B中的元素均大于等于pivot中的元素。这个时候对于两个子数组A和B而言，每一个子数组又是一个数组需要选取一个pivot进行排序，这就是递归的思想。</p>
 <p>因此对于快速排序来说主要由两部分组成：第一部分是获取pivot的<code>partition</code>函数和进行快排递归的<code>quicksort</code>函数</p>
-<p><code>c++   //这个函数主要是求pivot的   int partition(int *a, int left, int right){       //首先要随机选取一个pivot，这样做是为了根据pivot分成两个子数组数组。一下三种选择方式均可以       int pivot = a[left];       int pivot = a[right];       int pivot = a[left + (right - left) / 2];//这样做是为了防止数组越界       int pivot_index = left/right/left + (right - left) / 2       //两个指针移动，当同时指到一个元素时候就退出循环       //切记，必须从右边开始找！！！！       while(left &lt; right){            while(a[right] &gt;= pivot &amp;&amp; left &lt; right){               right--;           }           while(a[left] &lt;= pivot &amp;&amp; left &lt; right){               left++;           }           if(left &lt; right){             swap(a[left], a[right]);                       }       }       //这一步是为了将选取的pivot值放在中间，保证左边的子数组均比pivot小，右边的子数组均比pivot大       //这一步也是交换元素,交换选取pivot的索引和left的索引所对应的值       a[povit_index] = a[left];       a[left] = povit;       return left;       /*优化的写法：：       int pivot = a[left];       while(left&lt;right){           while(left&lt;right&amp;&amp;a[right]&lt;=pivot)right--;           a[left] = a[right];           while(left&lt;right&amp;&amp;a[left]&gt;=pivot)left++;           a[right] = a[left];       }       a[left] = pivot;       return left;       */   }   void quicksort(int *a, int left, int right){       //边界条件判断       if(left &gt;= right){           return;       }       int pivot = partition();       quicksort(a, left, pivot - 1);       quicksort(a, pivot +1, right);   }</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="co">//这个函数主要是求pivot的</span>
+<span class="dt">int</span> partition(<span class="dt">int</span> *a, <span class="dt">int</span> left, <span class="dt">int</span> right){
+    <span class="co">//首先要随机选取一个pivot，这样做是为了根据pivot分成两个子数组数组。一下三种选择方式均可以</span>
+    <span class="dt">int</span> pivot = a[left];
+    <span class="dt">int</span> pivot = a[right];
+    <span class="dt">int</span> pivot = a[left + (right - left) / <span class="dv">2</span>];<span class="co">//这样做是为了防止数组越界</span>
+    <span class="dt">int</span> pivot_index = left/right/left + (right - left) / <span class="dv">2</span>
+    <span class="co">//两个指针移动，当同时指到一个元素时候就退出循环</span>
+    <span class="co">//切记，必须从右边开始找！！！！</span>
+    <span class="kw">while</span>(left &lt; right){
+         <span class="kw">while</span>(a[right] &gt;= pivot &amp;&amp; left &lt; right){
+            right--;
+        }
+        <span class="kw">while</span>(a[left] &lt;= pivot &amp;&amp; left &lt; right){
+            left++;
+        }
+        <span class="kw">if</span>(left &lt; right){
+            swap(a[left], a[right]);            
+        }
+    }
+    <span class="co">//这一步是为了将选取的pivot值放在中间，保证左边的子数组均比pivot小，右边的子数组均比pivot大</span>
+    <span class="co">//这一步也是交换元素,交换选取pivot的索引和left的索引所对应的值</span>
+    a[povit_index] = a[left];
+    a[left] = povit;
+    <span class="kw">return</span> left;
+    <span class="co">/*优化的写法：：</span>
+<span class="co">    int pivot = a[left];</span>
+<span class="co">    while(left&lt;right){</span>
+<span class="co">        while(left&lt;right&amp;&amp;a[right]&lt;=pivot)right--;</span>
+<span class="co">        a[left] = a[right];</span>
+<span class="co">        while(left&lt;right&amp;&amp;a[left]&gt;=pivot)left++;</span>
+<span class="co">        a[right] = a[left];</span>
+<span class="co">    }</span>
+<span class="co">    a[left] = pivot;</span>
+<span class="co">    return left;</span>
+<span class="co">    */</span>
+}
+<span class="dt">void</span> quicksort(<span class="dt">int</span> *a, <span class="dt">int</span> left, <span class="dt">int</span> right){
+    <span class="co">//边界条件判断</span>
+    <span class="kw">if</span>(left &gt;= right){
+        <span class="kw">return</span>;
+    }
+    <span class="dt">int</span> pivot = partition();
+    quicksort(a, left, pivot - <span class="dv">1</span>);
+    quicksort(a, pivot <span class="dv">+1</span>, right);
+}</code></pre></div>
 <p><strong>总结：</strong>对上面代码，写的时候有几个地方需要注意：</p>
 <ol style="list-style-type: decimal">
 <li>在写内循环的时候，一定要先从右边开始写！！切记！！</li>
@@ -853,7 +1151,37 @@ cout &lt;&lt; endl;//回车换行</code></pre>
 </ul>
 <p>代码分为两部分，merge和mergesort</p>
 <p><a href="https://www.delftstack.com/zh/howto/cpp/merge-sort-in-cpp/#%E5%9C%A8-c-%E4%B8%AD%E4%B8%BA-std-vector-%E5%AE%B9%E5%99%A8%E5%AE%9E%E7%8E%B0%E5%90%88%E5%B9%B6%E6%8E%92%E5%BA%8F">参考链接.</a></p>
-<p><code>c++   void merge(vector&lt;int&gt;&amp; vec, vector&lt;int&gt;&amp; tmp1, vector&lt;int&gt;&amp; tmp2){       int len1 = tmp1.size();       int len2 = tmp2.size();       int p1 = 0;       int p2 = 0;       while(p1 &lt; len1 &amp;&amp; p2 &lt; len2){           if(tmp1[p1] &lt;tmp2[p2]){               vec.push_back(tmp1[p1++]);           }else{               vec.push_back(tmp2[p2++]);           }       }       while(p1 &lt;len1){           vec.push_back(tmp1[p1++]);       }       while(p2 &lt; len2){           vec.push_back(tmp2[p2++]);       }   }   void mergesort(vector&lt;int&gt;&amp; vec){       if(vec.size() &lt;= 1){           return;       }       auto mid = vec.begin() + vec.size()/2;       vector&lt;int&gt; tmp1(vec.begin(), mid);       vector&lt;int&gt; tmp2(mid, vec.end());       mergesort(tmp1);       mergesort(tmp2);       vec.clear();       merge(vec, tmp1, tmp2);   }</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">void</span> merge(vector&lt;<span class="dt">int</span>&gt;&amp; vec, vector&lt;<span class="dt">int</span>&gt;&amp; tmp1, vector&lt;<span class="dt">int</span>&gt;&amp; tmp2){
+    <span class="dt">int</span> len1 = tmp1.size();
+    <span class="dt">int</span> len2 = tmp2.size();
+    <span class="dt">int</span> p1 = <span class="dv">0</span>;
+    <span class="dt">int</span> p2 = <span class="dv">0</span>;
+    <span class="kw">while</span>(p1 &lt; len1 &amp;&amp; p2 &lt; len2){
+        <span class="kw">if</span>(tmp1[p1] &lt;tmp2[p2]){
+            vec.push_back(tmp1[p1++]);
+        }<span class="kw">else</span>{
+            vec.push_back(tmp2[p2++]);
+        }
+    }
+    <span class="kw">while</span>(p1 &lt;len1){
+        vec.push_back(tmp1[p1++]);
+    }
+    <span class="kw">while</span>(p2 &lt; len2){
+        vec.push_back(tmp2[p2++]);
+    }
+}
+<span class="dt">void</span> mergesort(vector&lt;<span class="dt">int</span>&gt;&amp; vec){
+    <span class="kw">if</span>(vec.size() &lt;= <span class="dv">1</span>){
+        <span class="kw">return</span>;
+    }
+    <span class="kw">auto</span> mid = vec.begin() + vec.size()/<span class="dv">2</span>;
+    vector&lt;<span class="dt">int</span>&gt; tmp1(vec.begin(), mid);
+    vector&lt;<span class="dt">int</span>&gt; tmp2(mid, vec.end());
+    mergesort(tmp1);
+    mergesort(tmp2);
+    vec.clear();
+    merge(vec, tmp1, tmp2);
+}</code></pre></div>
 <ul>
 <li><strong>性能分析</strong></li>
 </ul>
@@ -940,7 +1268,36 @@ cout &lt;&lt; endl;//回车换行</code></pre>
 <li>在堆排序函数中，每次要交换堆顶值和最后一个值，也就是数组的第一个和数组的最后一个，这样就可以升序排序</li>
 </ol>
 <p><strong>在构建堆的时候我们可以有递归和非递归的方式</strong></p>
-<p><code>void heap_bulid(vector&lt;int&gt;&amp; vec, int root, int len)     int left_child = root*2 + 1；     int righ_child = root*2 + 2；     int max_root = root;     if(left_child &lt; len &amp;&amp; vec[left_child] &gt; vec[max_root]){         max_root = left;         }     if(right_child &lt; len &amp;&amp; vec[right_child] &gt; vec[max_root]){         max_root = right;     }     //如果最大值的节点不是原先的父节点，表示需要     if(max_root != root){         swap(vec[root], vec[max_root]);         heap_bulid(vec, max_root, len);     }   }   void heap_sort(vector&lt;int&gt;&amp; vec){     //从右到左sink()方式构造堆，右指的不是最右边，而是从中间向左逼近     int len = vec.size();     //从最后一个节点的父节点开始调整     for(int i = len / 2 - 1; i &gt;=0; i++){         heap_bulid(vec, i, len);     }     //构建完后开始排序     for(int j = len - 1; j &gt; 0; j--){         swap(vec[0], vec[j]);         //交换完后从新建堆,这个堆的长度就要减去被移除(堆顶的那个)的最大元素之后的长度，所以长度不断变化，必须参数要带上长度         heap_build(vec, 0, j);     }   }</code></p>
+<pre><code>void heap_bulid(vector&lt;int&gt;&amp; vec, int root, int len)
+    int left_child = root*2 + 1；
+    int righ_child = root*2 + 2；
+    int max_root = root;
+    if(left_child &lt; len &amp;&amp; vec[left_child] &gt; vec[max_root]){
+        max_root = left;    
+    }
+    if(right_child &lt; len &amp;&amp; vec[right_child] &gt; vec[max_root]){
+        max_root = right;
+    }
+    //如果最大值的节点不是原先的父节点，表示需要
+    if(max_root != root){
+        swap(vec[root], vec[max_root]);
+        heap_bulid(vec, max_root, len);
+    }
+}
+void heap_sort(vector&lt;int&gt;&amp; vec){
+    //从右到左sink()方式构造堆，右指的不是最右边，而是从中间向左逼近
+    int len = vec.size();
+    //从最后一个节点的父节点开始调整
+    for(int i = len / 2 - 1; i &gt;=0; i++){
+        heap_bulid(vec, i, len);
+    }
+    //构建完后开始排序
+    for(int j = len - 1; j &gt; 0; j--){
+        swap(vec[0], vec[j]);
+        //交换完后从新建堆,这个堆的长度就要减去被移除(堆顶的那个)的最大元素之后的长度，所以长度不断变化，必须参数要带上长度
+        heap_build(vec, 0, j);
+    }
+}</code></pre>
 <ul>
 <li><p>了解优先队列。</p></li>
 <li><p>跟堆有关的题目</p></li>
@@ -1011,13 +1368,42 @@ cout &lt;&lt; endl;//回车换行</code></pre>
 <li>代码实现</li>
 </ul>
 <p><a href="https://www.jb51.net/article/122293.htm">参考链接</a></p>
-<p>```c++ class Priority_queue { public: Priority_queue(int max_num) { int <em>a = new int[max_num]; a = { 0 }; } ~Priority_queue() { delete[] a; } void Insert(int num) ; bool delete_max(); void build_max_heap(int </em>a, int length); int max_num(); void sort(); private: int capacity; int len; int *a; };</p>
-<p>void Priority_queue::build_max_heap(int *a, int length) {</p>
-<p>} int Priority_queue::max_num() {</p>
-<p>} bool Priority_queue::delete_max() {</p>
-<p>} void Priority_queue::Insert(int num) {</p>
-<p>} void Priority_queue::sort() {</p>
-<p>} ```</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> Priority_queue {
+<span class="kw">public</span>:
+    Priority_queue(<span class="dt">int</span> max_num) {
+        <span class="dt">int</span> *a = <span class="kw">new</span> <span class="dt">int</span>[max_num];
+        a = { <span class="dv">0</span> };
+    }
+    ~Priority_queue()
+    {
+        <span class="kw">delete</span>[] a;
+    }
+    <span class="dt">void</span> Insert(<span class="dt">int</span> num) ;
+    <span class="dt">bool</span> delete_max();
+    <span class="dt">void</span> build_max_heap(<span class="dt">int</span> *a, <span class="dt">int</span> length);
+    <span class="dt">int</span> max_num();
+    <span class="dt">void</span> sort();
+<span class="kw">private</span>:
+    <span class="dt">int</span> capacity;
+    <span class="dt">int</span> len;
+    <span class="dt">int</span> *a;
+};
+
+<span class="dt">void</span> Priority_queue::build_max_heap(<span class="dt">int</span> *a, <span class="dt">int</span> length) {
+
+}
+<span class="dt">int</span> Priority_queue::max_num() {
+
+}
+<span class="dt">bool</span> Priority_queue::delete_max() {
+
+}
+<span class="dt">void</span> Priority_queue::Insert(<span class="dt">int</span> num) {
+
+}
+<span class="dt">void</span> Priority_queue::sort() {
+
+}</code></pre></div>
 <h1 id="二分查找-1">二分查找</h1>
 <p>二分查找算法的前提是数组时有序的，同时不能有重复元素。</p>
 <p>二分查找难点就在于对区间的定义。区间的定义一般分为两种：左闭右闭[left, right]和左闭右开[left, right)</p>
@@ -1059,22 +1445,22 @@ cout &lt;&lt; endl;//回车换行</code></pre>
 <li>if(nums[middle] &gt; target 的时候应该去左边找，由于是左闭右开的，因此right=middle</li>
 </ul>
 </blockquote>
-<pre><code> int search(vector&lt;int&gt;&amp; nums, int target) {
-     int left = 0;
-     int right = nums.size(); // 定义target在左闭右开的区间里，即：[left, right)
-     while (left &lt; right) { // 因为left == right的时候，在[left, right)是无效的空间，所以使用 &lt;
-         int middle = left + ((right - left) &gt;&gt; 1);
-         if (nums[middle] &gt; target) {
-             right = middle; // target 在左区间，在[left, middle)中
-         } else if (nums[middle] &lt; target) {
-            left = middle + 1; // target 在右区间，在[middle + 1, right)中
-         } else { // nums[middle] == target
-            return middle; // 数组中找到目标值，直接返回下标
-         }
-     }
-     // 未找到目标值
-     return -1;
- }</code></pre>
+<pre><code>int search(vector&lt;int&gt;&amp; nums, int target) {
+    int left = 0;
+    int right = nums.size(); // 定义target在左闭右开的区间里，即：[left, right)
+    while (left &lt; right) { // 因为left == right的时候，在[left, right)是无效的空间，所以使用 &lt;
+        int middle = left + ((right - left) &gt;&gt; 1);
+        if (nums[middle] &gt; target) {
+            right = middle; // target 在左区间，在[left, middle)中
+        } else if (nums[middle] &lt; target) {
+           left = middle + 1; // target 在右区间，在[middle + 1, right)中
+        } else { // nums[middle] == target
+           return middle; // 数组中找到目标值，直接返回下标
+        }
+    }
+    // 未找到目标值
+    return -1;
+}</code></pre>
 <h2 id="边界的二分搜索">边界的二分搜索</h2>
 <p><strong>之前的都是在数组中找到一个数要与目标相等，如果不存在则返回-1。我们也可以用二分查找法找寻边界值，也就是说在</strong>有序数组<strong>中找到“正好大于（小于）目标数”的那个数。</strong></p>
 <p>比如说给有序数组 <code>nums = [1,2,2,2,3]</code>，<code>target</code> 为 2，此算法返回的索引是 2，没错。但是如果我想得到 <code>target</code> 的左侧边界，即索引 1，或者我想得到 <code>target</code> 的右侧边界，即索引 3，这样的话此算法是无法处理的。</p>
@@ -1086,24 +1472,48 @@ cout &lt;&lt; endl;//回车换行</code></pre>
 <ul>
 <li>左闭右开写法</li>
 </ul>
-<p>```c++ int left_bound(vector<int>&amp; nums, int target) { if (nums.length == 0) return -1; int left = 0; int right = nums.length(); // 注意</p>
-<pre><code>  while (left &lt; right) { // 注意
-      int mid = left + (right -left) / 2;
-      if (nums[mid] &lt; target) {
-          left = mid + 1; //没问题
-      } else{
-          right = mid;  //这个有点意思，找到target不返回而是继续缩小边界，不断锁定左侧，最终会出现left=right
-      }
-  }
-  //检查出界情况
-  if (left &gt;= nums.length || nums[left] != target)
-      return -1;
-  return left;</code></pre>
-<p>} ```</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> left_bound(vector&lt;<span class="dt">int</span>&gt;&amp; nums, <span class="dt">int</span> target) {
+    <span class="kw">if</span> (nums.length == <span class="dv">0</span>) <span class="kw">return</span> <span class="dv">-1</span>;
+    <span class="dt">int</span> left = <span class="dv">0</span>;
+    <span class="dt">int</span> right = nums.length(); <span class="co">// 注意</span>
+    
+    <span class="kw">while</span> (left &lt; right) { <span class="co">// 注意</span>
+        <span class="dt">int</span> mid = left + (right -left) / <span class="dv">2</span>;
+        <span class="kw">if</span> (nums[mid] &lt; target) {
+            left = mid + <span class="dv">1</span>; <span class="co">//没问题</span>
+        } <span class="kw">else</span>{
+            right = mid;  <span class="co">//这个有点意思，找到target不返回而是继续缩小边界，不断锁定左侧，最终会出现left=right</span>
+        }
+    }
+    <span class="co">//检查出界情况</span>
+    <span class="kw">if</span> (left &gt;= nums.length || nums[left] != target)
+        <span class="kw">return</span> <span class="dv">-1</span>;
+    <span class="kw">return</span> left;
+}</code></pre></div>
 <ul>
 <li>左闭右闭写法</li>
 </ul>
-<p><code>c++   int left_bound(int[] nums, int target) {       int left = 0, right = nums.length - 1;       // 搜索区间为 [left, right]       while (left &lt;= right) {           int mid = left + (right - left) / 2;           if (nums[mid] &lt; target) {               // 搜索区间变为 [mid+1, right]               left = mid + 1;           } else if (nums[mid] &gt; target) {               // 搜索区间变为 [left, mid-1]               right = mid - 1;           } else if (nums[mid] == target) {               // 收缩右侧边界               right = mid - 1;           }       }       // 检查出界情况       if (left &gt;= nums.length || nums[left] != target)           return -1;       return left;   }</code></p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> left_bound(<span class="dt">int</span>[] nums, <span class="dt">int</span> target) {
+    <span class="dt">int</span> left = <span class="dv">0</span>, right = nums.length - <span class="dv">1</span>;
+    <span class="co">// 搜索区间为 [left, right]</span>
+    <span class="kw">while</span> (left &lt;= right) {
+        <span class="dt">int</span> mid = left + (right - left) / <span class="dv">2</span>;
+        <span class="kw">if</span> (nums[mid] &lt; target) {
+            <span class="co">// 搜索区间变为 [mid+1, right]</span>
+            left = mid + <span class="dv">1</span>;
+        } <span class="kw">else</span> <span class="kw">if</span> (nums[mid] &gt; target) {
+            <span class="co">// 搜索区间变为 [left, mid-1]</span>
+            right = mid - <span class="dv">1</span>;
+        } <span class="kw">else</span> <span class="kw">if</span> (nums[mid] == target) {
+            <span class="co">// 收缩右侧边界</span>
+            right = mid - <span class="dv">1</span>;
+        }
+    }
+    <span class="co">// 检查出界情况</span>
+    <span class="kw">if</span> (left &gt;= nums.length || nums[left] != target)
+        <span class="kw">return</span> <span class="dv">-1</span>;
+    <span class="kw">return</span> left;
+}</code></pre></div>
 <p>可以看到当nums[mid] == target的时候，让mid这个位置变成了right重新开始查找。</p>
 <p>数组越界的判断条件是指当left大于数组长度时候，肯定是错的。或者逼近的left位置上的值不等于target，说明就没有。</p>
 <h3 id="右侧边界">右侧边界</h3>
@@ -1111,20 +1521,24 @@ cout &lt;&lt; endl;//回车换行</code></pre>
 <ul>
 <li>左闭右开</li>
 </ul>
-<p>```c++ int right_bound(vector<int>&amp; nums, int target) { if (nums.length == 0) return -1; int left = 0; int right = nums.length(); // 注意</p>
-<pre><code>  while (left &lt; right) { // 注意
-      int mid = left + (right -left) / 2;
-      if (nums[mid] &lt; target) {
-          left = mid ; //没问题
-      } else{
-          right = mid - 1;  
-      }
-  }
-  //检查出界情况
-  if (right &gt;= nums.length || nums[left] != target)
-      return -1;
-  return right;</code></pre>
-<p>} ```</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">int</span> right_bound(vector&lt;<span class="dt">int</span>&gt;&amp; nums, <span class="dt">int</span> target) {
+    <span class="kw">if</span> (nums.length == <span class="dv">0</span>) <span class="kw">return</span> <span class="dv">-1</span>;
+    <span class="dt">int</span> left = <span class="dv">0</span>;
+    <span class="dt">int</span> right = nums.length(); <span class="co">// 注意</span>
+    
+    <span class="kw">while</span> (left &lt; right) { <span class="co">// 注意</span>
+        <span class="dt">int</span> mid = left + (right -left) / <span class="dv">2</span>;
+        <span class="kw">if</span> (nums[mid] &lt; target) {
+            left = mid ; <span class="co">//没问题</span>
+        } <span class="kw">else</span>{
+            right = mid - <span class="dv">1</span>;  
+        }
+    }
+    <span class="co">//检查出界情况</span>
+    <span class="kw">if</span> (right &gt;= nums.length || nums[left] != target)
+        <span class="kw">return</span> <span class="dv">-1</span>;
+    <span class="kw">return</span> right;
+}</code></pre></div>
 <h3 id="c二分查找api">c++二分查找API</h3>
 <blockquote>
 <p>二分查找的函数有3个：</p>

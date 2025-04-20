@@ -113,6 +113,7 @@ SingleInstance::~SingleInstance()
         <span class="kw">return</span> instance;
     }
     <span class="co">//不推荐，返回指针的方式</span>
+    <span class="co">// 外部可以delete</span>
     <span class="co">/*static Singleton* get_instance(){</span>
 <span class="co">        static Singleton instance;</span>
 <span class="co">        return &amp;instance;</span>
