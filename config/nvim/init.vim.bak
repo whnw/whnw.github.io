@@ -1,0 +1,515 @@
+lua require("plugins")
+lua require('telescope').load_extension('fzf')
+colorscheme gruvbox
+
+set fileencodings=ucs-bom,utf-8,cp936,gb18030,big5,euc-jp,euc-kr,gbk
+set fileencoding=utf-8
+set encoding=utf-8
+set linespace=0
+
+
+map <F6> :bd<cr>
+map <F2> :shell<cr>
+" close current buffer 
+
+
+if !has('nvim')
+set term=xterm
+if &term =~ "screen"
+    let &t_BE = "\e[?2004h"
+    let &t_BD = "\e[?2004l"
+    exec "set t_PS=\e[200~"
+    exec "set t_PE=\e[201~"
+endif
+endif
+
+syntax enable
+" set t_Co=256
+" let g:solarized_termcolors=256
+" set background=dark
+" let g:solarized_termtrans = 1
+" colorscheme solarized
+
+" lua << EOF
+"   require('neosolarized').setup({
+"     comment_italics = true,
+"     background_set = false,
+"   })
+" EOF
+
+set termguicolors
+
+let mapleader=";"
+inoremap jk <esc>
+inoremap <leader>t ""<esc>i
+inoremap <leader>g {}<esc>i<cr><esc>O
+inoremap <leader>e <esc>la
+inoremap <leader>d :
+inoremap <leader>v <
+inoremap <leader>f ()<esc>i
+inoremap <leader>a +
+inoremap <leader>s _
+inoremap <leader>S _
+inoremap <leader>b ->
+inoremap <leader>w *
+inoremap <leader>r &
+inoremap <leader>q !
+
+nnoremap <leader>w :w<cr>
+" nnoremap <leader>q :q!<cr>
+" vnoremap <leader>y "+y
+nnoremap <leader>p "+p
+nnoremap <leader>gd :SignifyDiff<cr><c-w><c-w><esc>:%s/$//g<cr>
+
+"General Configuration
+syntax on
+set hls
+set number 
+set incsearch
+set ignorecase smartcase
+set enc=utf-8
+set mouse=a
+set autowriteall
+set autoread
+set hidden
+set scrolloff=3
+" set clipboard=unnamedplus
+" set clipboard=unnamed
+
+augroup numbertoggle
+	autocmd!
+	autocmd BufEnter,FocusGained,InsertLeave,WinEnter * if &nu && mode() != "i" | set rnu   | endif
+	autocmd BufLeave,FocusLost,InsertEnter,WinLeave   * if &nu                  | set nornu | endif
+augroup END
+
+if has("autocmd")
+	au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
+endif
+
+set nocompatible
+set backspace=indent,eol,start
+set tabstop=4
+set softtabstop=4
+set shiftwidth=4
+set laststatus=2
+
+" Find files using Telescope command-line sugar.
+nnoremap <leader>ff <cmd>Telescope find_files<cr>
+nnoremap <leader>fg <cmd>Telescope live_grep<cr>
+nnoremap <leader>fb <cmd>Telescope buffers<cr>
+nnoremap <leader>fh <cmd>Telescope help_tags<cr>
+
+
+
+" set statusline=%1*%f%m%r%h%w%=\ %2*\ %Y\ %3*%{\"\".(\"\"?&enc:&fenc).((exists(\"+bomb\")\ &&\ &bomb)?\"+\":\"\").\"\"}\ %4*[%l,%v]\ %5*%p%%\ \|\ %6*%LL
+
+" hi User1 cterm=none ctermfg=black ctermbg=2
+" hi User2 cterm=none ctermfg=black ctermbg=2
+" hi User3 cterm=none ctermfg=black ctermbg=2
+" hi User4 cterm=none ctermfg=black ctermbg=2
+" hi User5 cterm=none ctermfg=black ctermbg=2
+" hi User6 cterm=none ctermfg=black ctermbg=2
+
+"
+" hi Pmenu ctermfg=black ctermbg=gray guibg=#444444
+" hi PmenuSel ctermfg=7 ctermbg=4
+" guibg=#555555 guifg=#ffffff
+" hi PmenuSel ctermbg=lightblue
+
+
+filetype plugin indent on
+
+" function! CleverTab()
+"     if strpart( getline('.'), 0, col('.') - 1) =~ '^\s*$'
+"         return "\<Tab>"
+"     else
+"         return "\<C-y>"
+"     endif
+" endfunction
+" inoremap <Tab> <C-R>=CleverTab()<cr>
+
+" function! InsertTabWrapper()
+"     let col = col('.') - 1
+"     if !col || getline('.')[col - 1] !~ '\k'
+"         return "\<tab>"
+"     else
+"         return "\<c-y>"
+"     endif
+" endfunction
+" inoremap <Tab> <c-r>=InsertTabWrapper()<cr>
+" inoremap <S-Tab> <c-n>
+
+function! CheckBackspace() abort
+  let col = col('.') - 1
+  return !col || getline('.')[col - 1]  =~# '\s'
+endfunction
+
+inoremap <silent><expr> <Tab>
+	  \ pumvisible() ? "\<C-y>" :
+	  \ coc#pum#visible() ? coc#pum#confirm():
+      \ CheckBackspace() ? "\<Tab>" :
+      \ coc#refresh()
+
+      " \ coc#pum#visible() ? coc#pum#next(1) :
+" inoremap <silent><expr> <TAB>
+"       \ pumvisible() ? "\<C-n>" :
+"       \ <SID>check_back_space() ? "\<TAB>" :
+"       \ coc#refresh()
+" inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
+"
+" function! s:check_back_space() abort
+"   let col = col('.') - 1
+"   return !col || getline('.')[col - 1]  =~# '\s'
+" endfunction
+
+" 默认选中第一个
+" set completeopt=menu
+set completeopt=noselect
+
+" let $GTAGSLABEL = 'native-pygments'
+let $GTAGSLABEL = 'native'
+let $GTAGSCONF = '/usr/local/share/gtags/gtags.conf'
+" gutentags 搜索工程目录的标志，当前文件路径向上递归直到碰到这些文件/目录名
+let g:gutentags_project_root = ['.root', '.svn', '.git', '.hg', '.project', '.wrjroot']
+
+" 所生成的数据文件的名称
+let g:gutentags_ctags_tagfile = '.tags'
+
+" 同时开启 ctags 和 gtags 支持：
+let g:gutentags_modules = []
+if executable('ctags')
+	let g:gutentags_modules += ['ctags']
+endif
+if executable('gtags-cscope') && executable('gtags')
+	let g:gutentags_modules += ['gtags_cscope']
+endif
+
+" 将自动生成的 ctags/gtags 文件全部放入 ~/work/tags 目录中，避免污染工程目录
+if !isdirectory('~/work/tags')
+	silent! call mkdir('~/work/tags', 'p')
+endif
+let g:gutentags_cache_dir = expand('~/work/tags')
+
+" 配置 ctags 的参数，老的 Exuberant-ctags 不能有 --extra=+q，注意
+let g:gutentags_ctags_extra_args = ['--fields=+niazS', '--extra=+q']
+let g:gutentags_ctags_extra_args += ['--c++-kinds=+px']
+let g:gutentags_ctags_extra_args += ['--c-kinds=+px']
+
+" 如果使用 universal ctags 需要增加下面一行，老的 Exuberant-ctags 不能加下一行
+let g:gutentags_ctags_extra_args += ['--output-format=e-ctags']
+
+" 禁用 gutentags 自动加载 gtags 数据库的行为
+let g:gutentags_auto_add_gtags_cscope = 0"
+
+
+let g:gutentags_enabled = 1
+" nnoremap <F7> :GutentagsToggleEnabled
+" set tags+=~/work/tags/tags
+set tags+=g:gutentags_cache_dir
+
+let OmniCpp_NamespaceSearch = 1
+let OmniCpp_ShowPrototypeInAbbr = 1
+let OmniCpp_GlobalScopeSearch = 1
+let OmniCpp_DisplayMode = 0
+let OmniCpp_ShowScopeInAbbr = 1
+let OmniCpp_ShowAccess = 1
+let OmniCpp_MayCompleteDot = 1
+let OmniCpp_MayCompleteArrow = 1
+let OmniCpp_SelectFirstItem = 2
+autocmd CursorMovedI * if pumvisible() == 0|pclose|endif
+autocmd InsertLeave * if pumvisible() == 0|pclose|endif
+
+
+let g:NERDSpaceDelims = 1
+let g:NERDCompactSexyComs = 1
+let g:NERDDefaultAlign = 'left'
+let g:NERDCustomDelimiters = { 'c': {'left': '/*', 'right': '*/'}}
+let g:NERDCommentEmptyLines = 1
+let g:NERDTrimTrailingWhitespace = 1
+let g:NERDToggleCheckAllLines = 1
+
+
+" nmap <leader>sg :cs find g <C-R>=expand("<cword>")<cr><cr>
+" nmap <leader>sc :cs find c <C-R>=expand("<cword>")<cr><cr>
+" nmap <leader>ss :cs find s <C-R>=expand("<cword>")<cr><cr>
+" nmap <leader>se :cs find e <C-R>=expand("<cword>")<cr><cr>
+" nmap <leader>sr :cs find e
+"
+" if has("cscope")
+"     set csprg=/usr/bin/cscope
+"     set csto=1
+"     set cst
+"     set nocsverb
+"     if filereadable("cscope.out")
+"         cs add cscope.out
+"     endif
+"     set csverb
+" endif
+
+" nmap <F10> :TagbarToggle<CR>
+
+let g:ale_linters = {'rust': ['analyzer']}
+" let g:ale_c_gcc_options = '-Wall -O2 -std=c99'
+" let g:ale_linters = {'cpp':['~/work/tmp/cppcheck-2.12.0/cppcheck'], 'c':['~/work/tmp/cppcheck-2.12.0/cppcheck']}
+" let g:ale_c_cppcheck_options = '--enable=all'
+" let g:ale_linters = {'cpp':['/home/bba/work/tmp/clang+llvm-5.0.0-linux-x86_64-ubuntu14.04/bin/clang'], 'c':['/home/bba/work/tmp/clang+llvm-5.0.0-linux-x86_64-ubuntu14.04/bin/clang']}
+" let g:ale_linters_explicit =  1
+" let g:ale_completion_delay = 500
+" let g:ale_echo_delay = 20
+" let g:ale_lint_delay = 500
+" let g:ale_echo_msg_format = '[%linter%] %code: %%s'
+" let g:ale_statusline_format = ['X %d', '~~ %d', '\/ OK']
+" let g:ale_lint_on_text_changed = 'normal'
+" let g:ale_lint_on_insert_leave = 1
+" let g:airline#extensions#ale#enabled = 1
+
+" let g:ale_sign_error = "\ue009\ue009"
+" hi! clear SpellBad
+" hi! clear SpellCap
+" hi! clear SpellRare
+" hi! SpellBad gui=undercurl guisp=red
+" hi! SpellCap gui=undercurl guisp=blue
+" hi! SpellRare gui=undercurl guisp=magenta
+
+
+" set statusline+=%#warningmsg#
+" set statusline+=%{SyntasticStatuslineFlag()}
+" set statusline+=%*
+
+set nobackup
+set noswapfile
+set nowritebackup
+
+autocmd InsertLeave * write
+autocmd FocusLost * if &mod | write | endif
+
+
+" let g:Lf_ShortcutF = '<c-p>'
+" let g:Lf_ShortcutB = '<c-n>'
+" noremap <space>m :LeaderfMru<cr>
+" noremap <space>f :LeaderfFunction!<cr>
+" noremap <space>b :LeaderfBuffer<cr>
+" " noremap <a-m> :LeaderfTag<cr>
+" let g:Lf_StlSeparator = { 'left': '', 'right': '', 'font': '' }
+"
+" let g:Lf_RootMarkers = ['.project', '.root', '.svn', '.git']
+" let g:Lf_WorkingDirectoryMode = 'Ac'
+" let g:Lf_WindowHeight = 0.30
+" let g:Lf_CacheDirectory = expand('~/work/cache')
+" let g:Lf_ShowRelativePath = 0
+" let g:Lf_HideHelp = 1
+" let g:Lf_StlColorscheme = 'lightline'
+" let g:Lf_PreviewResult = {'Function':0, 'BufTag':0}
+" let g:Lf_ShowDevIcons = 0
+" " let g:Lf_DefaultExternalTool = "grep"
+" nnoremap <c-f> :<c-u><c-r>=printf("Leaderf! rg %s %s", expand("<cword>"), expand("%:p"))<cr><cr>
+" inoremap <c-f> :<c-u><c-r>=printf("Leaderf! rg %s %s", expand("<cword>"), expand("%:p"))<cr><cr>
+" """""""""""""""""""""""""""""LeaderF settings"""""""""""""""""""""{{
+" " 工作项目比较大，在查找文件名时开启缓存，用F5刷新
+" " let g:Lf_UseCache = 1
+"
+" " 禁止缓存索引
+" " let g:Lf_UseMemoryCache = 0
+"
+" " 这行配置让Leaderf跳转时在当前tabpage中开启新窗口而非复用已有窗口，由于我使用bufferline插件，因此不需要此配置
+" " let g:Lf_JumpToExistingWindow = 0
+"
+" " 查找时忽略以下目录和文件
+" let g:Lf_WildIgnore = {
+"   \ 'dir': ['.git', '__pycache__', '.DS_Store'],
+"   \ 'file': ['*.exe', '*.dll', '*.so', '*.o', '*.pyc', '*.jpg', '*.png',
+"   \ '*.gif', '*.svg', '*.ico', '*.db', '*.tgz', '*.tar.gz', '*.gz',
+"   \ '*.zip', '*.bin', '*.pptx', '*.xlsx', '*.docx', '*.pdf', '*.tmp',
+"   \ '*.wmv', '*.mkv', '*.mp4', '*.rmvb', '*.ttf', '*.ttc', '*.otf',
+"   \ '*.mp3', '*.aac', '*.orig', '*.min.*', 'cscope*']
+"   \}
+"
+" " 默认rg参数
+" let g:Lf_RgConfig = [
+"       \"--glob=!tags",
+"       \"--glob=!tags.*"
+"       \]
+"
+" " 将最后一次查找的正则表达式保持到r寄存器中
+" let g:Lf_RgStorePattern = "r"
+"
+" " 默认使用正则模式
+" let g:Lf_DefaultMode = 'Regex'
+"
+" " 增加【最近使用】文件列表（Most Recent Used）的容量 
+" " let g:Lf_MruMaxFiles = 9999
+"
+" " Do not use version control tool to list files under a directory since
+" " submodules are not searched by default.
+" let g:Lf_UseVersionControlTool = 0
+"
+" " 使用rg作为默认外部搜索工具
+" let g:Lf_DefaultExternalTool = "rg"
+"
+" " 显示隐藏文件
+" " let g:Lf_ShowHidden = 1
+"
+" " 在弹出窗口中预览
+" let g:Lf_PreviewInPopup = 1
+"
+" " 禁用默认搜索快捷键
+" "let g:Lf_ShortcutF = ''
+" "let g:Lf_ShortcutB = ''
+"
+" " 使用当前工作目录（pwd）作为搜索根目录，以便我能掌控搜索范围
+" let g:Lf_WorkingDirectoryMode = 'c'
+"
+" " 快捷键映射
+"
+" " 搜索项目文件名
+" " nnoremap <space>pf<space> :LeaderfFile<CR>
+"
+" " 在项目中搜索光标所在单词
+" nnoremap <leader>ff :<c-u><c-r>=printf("Leaderf! rg --regexMode -F -e %s", expand("<cword>"))<cr><cr>
+" " 在项目中搜索光标所在单词
+" xnoremap <leader>ff :<c-u><c-r>=printf("Leaderf! rg --regexMode -F -e %s", leaderf#Rg#visual())<cr><cr>
+" " 使用光标所在单词生成搜索命令（但不执行，可先修改再执行）
+" nnoremap <leader>fi :<c-u><c-r>=printf("Leaderf! rg --regexMode -e \"%s\"", expand("<cword>"))<cr><left><c-f>0f"l
+" xnoremap <leader>fi :<c-u><c-r>=printf("Leaderf! rg --regexMode -e %s", leaderf#Rg#visual())<cr><left><c-f>0f"l
+"
+" " 生成空的项目内搜索命令（自行输入关键字执行）
+" nnoremap <leader>fk :<c-u><c-r>=printf("Leaderf rg --regexMode --stayOpen -e \"\"")<cr><left>
+" xnoremap <leader>fk :<c-u><c-r>=printf("Leaderf! rg --regexMode -e %s", leaderf#Rg#visual())<cr><left><c-f>0f"l
+"
+" " 重新唤出搜索结果窗口
+" nnoremap <leader>fw :<c-u>Leaderf! rg --recall<cr>
+"
+" " 搜索buffer名称
+" " nnoremap <space>efl<space> :<c-u>Leaderf! buffer<cr>:setl nowrap<cr>
+"
+" " 在当前buffer中搜索光标所在单词（显示匹配结果列表）
+" nnoremap <leader>fb :<c-u><c-r>=printf("Leaderf line --stayOpen --regexMode --input %s", expand("<cword>"))<cr><cr><cr>
+" " 在当前buffer中搜索选中内容（显示匹配结果列表）
+" xnoremap <leader>fb :<c-u><c-r>=printf("Leaderf line --stayOpen --regexMode --input %s", leaderf#Rg#visual())<cr><cr><cr>
+" " 生成空的buffer内搜索命令（自行输入关键字执行）
+" nnoremap <leader>fbi :<c-u>Leaderf line --regexMode --input<space>''<left>
+" xnoremap <leader>fbi :<c-u><c-r>=printf("Leaderf line --stayOpen --regexMode --input \"%s\" ", leaderf#Rg#visual())<cr>
+" " 重新唤出buffer内搜索结果窗口
+" nnoremap <Leader>fr :<c-u>Leaderf! line --recall<cr>
+" " nmap <space>efiu<space> <space>efui<space>
+"
+" " 搜索vim命令历史
+" " nnoremap <space>ef;<space> :<c-u>Leaderf cmdHistory --fuzzy<cr>
+" " 搜索vim内部搜索关键字历史
+" nnoremap <leader>fh :<c-u>Leaderf searchHistory --fuzzy<cr>
+"
+" "【最近使用】文件列表
+" nnoremap <leader>fl :<c-u>Leaderf! mru<cr>:setl nowrap<cr>
+" " nnoremap <space>fr<space>  :<c-u>Leaderf! mru<cr>:setl nowrap<cr>
+" "}}
+
+" let g:rust_clip_command = 'xclip -selection clipboard'
+
+if executable('rust-analyzer')
+  au User lsp_setup call lsp#register_server({
+        \   'name': 'Rust Language Server',
+        \   'cmd': {server_info->['rust-analyzer']},
+        \   'whitelist': ['rust'],
+        \ })
+endif
+
+set hidden
+let g:racer_cmd = "/home/user/.cargo/bin/racer"
+
+let g:racer_insert_paren = 1
+
+let g:rustfmt_autosave = 1
+let g:rustfmt_emit_files = 1
+let g:rustfmt_fail_silently = 0
+
+"
+" if has('nvim')
+"   inoremap <silent><expr> <c-space> coc#refresh()
+" else
+"   inoremap <silent><expr> <c-@> coc#refresh()
+" endif
+
+nmap <silent> gd <Plug>(coc-definition)
+nmap <silent> gy <Plug>(coc-type-definition)
+nmap <silent> gi <Plug>(coc-implementation)
+nmap <silent> gr <Plug>(coc-references)
+
+" function Copy()
+  " let c = join(v:event.regcontents,"\n")
+  " let c64 = system("base64", c)
+  " let s = "\e]52;c;" . trim(c64) . "\x07"
+  " call s:raw_echo(s)
+" endfunction
+
+" function! s:raw_echo(str)
+"   if has('win32') && has('nvim')
+"     call chansend(v:stderr, a:str)
+"   else
+"     if filewritable('/dev/fd/2')
+"       call writefile([a:str], '/dev/fd/2', 'b')
+"     else
+"       exec("silent! !echo " . shellescape(a:str))
+"       redraw!
+"     endif
+"   endif
+" endfunction
+"
+" autocmd TextYankPost * call Copy()
+
+" copy to attached terminal using the yank(1) script:
+" https://github.com/sunaku/home/blob/master/bin/yank
+function! Yank(text) abort
+  let escape = system('yank', a:text)
+  if v:shell_error
+    echoerr escape
+  else
+    call writefile([escape], '/dev/tty', 'b')
+  endif
+endfunction
+noremap <silent> <Leader>y y:<C-U>call Yank(@0)<CR>
+
+" automatically run yank(1) whenever yanking in Vim
+" (this snippet was contributed by Larry Sanderson)
+function! CopyYank() abort
+  call Yank(join(v:event.regcontents, "\n"))
+endfunction
+autocmd TextYankPost * call CopyYank()
+
+" vim-preview for PreviewTag
+noremap <F3> :PreviewTag<cr>
+nnoremap <S-j> :PreviewScroll -1<cr>
+nnoremap <S-k> :PreviewScroll +1<cr>
+" inoremap <c-up> <c-\><c-o>:PreviewScroll -1<cr>
+" inoremap <c-down> <c-\><c-o>:PreviewScroll +1<cr>
+
+
+" gutentags_plus settings
+"" change focus to quickfix window after search (optional).
+let g:gutentags_plus_switch = 1
+
+let g:gutentags_plus_nomap = 1
+
+noremap <silent> <leader>ss :GscopeFind s <C-R><C-W><cr>
+noremap <silent> <leader>sg :GscopeFind g <C-R><C-W><cr>
+noremap <silent> <leader>sc :GscopeFind c <C-R><C-W><cr>
+noremap <silent> <leader>st :GscopeFind t <C-R><C-W><cr>
+noremap <silent> <leader>se :GscopeFind e <C-R><C-W><cr>
+noremap <leader>sf :tag  
+" noremap <silent> <leader>sf :GscopeFind f <C-R>=expand("<cfile>")<cr><cr>
+noremap <silent> <leader>si :GscopeFind i <C-R>=expand("<cfile>")<cr><cr>
+noremap <silent> <leader>sd :GscopeFind d <C-R><C-W><cr>
+noremap <silent> <leader>sa :GscopeFind a <C-R><C-W><cr>
+noremap <silent> <leader>sz :GscopeFind z <C-R><C-W><cr>
+
+" vim-preview for quickfix
+autocmd FileType qf nnoremap <silent><buffer> p :PreviewQuickfix<cr>
+autocmd FileType qf nnoremap <silent><buffer> P :PreviewClose<cr>
+
+noremap <F4> :PreviewSignature!<cr>
+inoremap <F4> <c-\><c-o>:PreviewSignature!<cr>
+
+highlight SpellBad cterm=underline ctermfg=red gui=underline guifg=red
+
+" set runtimepath^=~/.vim runtimepath+=~/.vim/after
+" let &packpath = &runtimepath
+" source ~/.vimrc

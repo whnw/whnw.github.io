@@ -134,13 +134,6 @@ require("lazy").setup(
             -- install jsregexp (optional!).
             build = "make install_jsregexp"
         },
-        {
-            "shellRaining/hlchunk.nvim",
-            event = {"BufReadPre", "BufNewFile"},
-            config = function()
-                require("hlchunk").setup({})
-            end
-        },
         {"mhartington/formatter.nvim"},
         {
             "kiyoon/treesitter-indent-object.nvim",
@@ -194,7 +187,7 @@ require("lazy").setup(
             config = function()
                 require("nvim-tree").setup {}
             end,
-        }
+        },
     }
 )
 
