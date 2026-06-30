@@ -142,6 +142,23 @@ require("lazy").setup({
 			"neovim/nvim-lspconfig",
 		},
 	},
+	{
+		"L3MON4D3/LuaSnip",
+		-- follow latest release.
+		version = "v2.*", -- Replace <CurrentMajor> by the latest released major (first number of latest release)
+		-- install jsregexp (optional!).
+		build = "make install_jsregexp",
+		config = function()
+			local luasnip = require("luasnip")
+
+			-- 加载 SnipMate 风格的 snippets
+			require("luasnip.loaders.from_snipmate").lazy_load({
+				paths = { vim.fn.stdpath("config") .. "/snippets" },
+			})
+
+			luasnip.config.setup({})
+		end,
+	},
 	{ "neovim/nvim-lspconfig" },
 	{
 		"hrsh7th/nvim-cmp",
@@ -152,10 +169,19 @@ require("lazy").setup({
 			"L3MON4D3/LuaSnip", -- 代码片段引擎
 			"saadparwaiz1/cmp_luasnip", -- LuaSnip 的补全源
 			"neovim/nvim-lspconfig", -- LSP 配置
+			"hrsh7th/cmp-cmdline",
 		},
 		config = function()
 			local cmp = require("cmp")
 			local luasnip = require("luasnip")
+
+			cmp.setup.cmdline(":", {
+				mapping = cmp.mapping.preset.cmdline(),
+				sources = cmp.config.sources({
+					{ name = "cmdline" },
+					{ name = "path" },
+				}),
+			})
 
 			cmp.setup({
 				window = {},

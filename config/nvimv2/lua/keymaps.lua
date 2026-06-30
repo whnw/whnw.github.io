@@ -6,7 +6,13 @@
 -- vim.keymap.set("n", "<leader>fr", builtin.resume, {})
 -- vim.keymap.set("n", "<leader>fm", builtin.oldfiles, {})
 -- vim.keymap.set("n", "<leader>fk", builtin.grep_string, {})
-vim.opt.clipboard = "unnamedplus"
+local in_tmux = vim.env.TMUX ~= nil
+
+if not in_tmux then
+	vim.g.clipboard = "osc52"
+else
+	vim.opt.clipboard = "unnamedplus"
+end
 vim.o.fileencodings = "ucs-bom,utf-8,cp936,gb18030,big5,euc-jp,euc-kr,gbk"
 vim.o.encoding = "utf-8"
 vim.o.linespace = 0
