@@ -381,15 +381,6 @@ require("lazy").setup({
 			require("nvim-tree").setup({})
 		end,
 	},
-	-- Trouble: Better quickfix and location list
-	{
-		"folke/trouble.nvim",
-		dependencies = { "nvim-tree/nvim-web-devicons" },
-		keys = {
-			{ "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>", desc = "Diagnostics (Trouble)" },
-			{ "<leader>xq", "<cmd>Trouble qflist toggle<cr>", desc = "Quickfix (Trouble)" },
-		},
-	},
 	-- nvim-surround: Quick editing of surrounding characters
 	{
 		"kylechui/nvim-surround",
@@ -418,7 +409,15 @@ require("lazy").setup({
 				enabled = true,
 				timeout = 3000,
 			},
-			picker = { enabled = true },
+			picker = {
+				enabled = true,
+				grep = {
+					args = { "--crlf" },
+				},
+				live_grep = {
+					args = { "--crlf" },
+				},
+			},
 			quickfile = { enabled = true },
 			scope = { enabled = true },
 			scroll = { enabled = true },
@@ -426,7 +425,7 @@ require("lazy").setup({
 			words = { enabled = true },
 			styles = {
 				notification = {
-					-- wo = { wrap = true } -- Wrap notifications
+					wo = { wrap = true }, -- Wrap notifications
 				},
 			},
 		},
@@ -514,7 +513,7 @@ require("lazy").setup({
 			{
 				"<leader>fk",
 				function()
-					Snacks.picker.grep_work()
+					Snacks.picker.grep_word()
 				end,
 				desc = "Visual selection or word",
 				mode = { "n", "x" },
@@ -529,7 +528,7 @@ require("lazy").setup({
 			{
 				"<leader>fr",
 				function()
-					Snacks.picker.recent()
+					Snacks.picker.resume()
 				end,
 				desc = "Recent",
 			},
@@ -1047,6 +1046,65 @@ require("lazy").setup({
 			--   `nvim-notify` is only needed, if you want to use the notification view.
 			--   If not available, we use `mini` as the fallback
 			"rcarriga/nvim-notify",
+		},
+	},
+	{
+		"folke/trouble.nvim",
+		opts = {
+			focus = true,
+			-- modes = {
+			-- 	diagnostics_buffer = {
+			-- 		mode = "diagnostics", -- inherit from diagnostics mode
+			-- 		filter = { buf = 0 }, -- filter diagnostics to the current buffer
+			-- 	},
+			-- },
+			modes = {
+				cascade = {
+					mode = "diagnostics", -- inherit from diagnostics mode
+					filter = function(items)
+						local severity = vim.diagnostic.severity.HINT
+						for _, item in ipairs(items) do
+							severity = math.min(severity, item.severity)
+						end
+						return vim.tbl_filter(function(item)
+							return item.severity == severity
+						end, items)
+					end,
+				},
+			},
+		}, -- for default options, refer to the configuration section for custom setup.
+		cmd = "Trouble",
+		keys = {
+			{
+				"<leader>xx",
+				"<cmd>Trouble diagnostics toggle<cr>",
+				desc = "Diagnostics (Trouble)",
+			},
+			{
+				"<leader>xX",
+				"<cmd>Trouble diagnostics toggle filter.buf=0<cr>",
+				desc = "Buffer Diagnostics (Trouble)",
+			},
+			{
+				"<leader>xs",
+				"<cmd>Trouble symbols toggle focus=false<cr>",
+				desc = "Symbols (Trouble)",
+			},
+			{
+				"<leader>xl",
+				"<cmd>Trouble lsp toggle focus=false win.position=right<cr>",
+				desc = "LSP Definitions / references / ... (Trouble)",
+			},
+			{
+				"<leader>xL",
+				"<cmd>Trouble loclist toggle<cr>",
+				desc = "Location List (Trouble)",
+			},
+			{
+				"<leader>xQ",
+				"<cmd>Trouble qflist toggle<cr>",
+				desc = "Quickfix List (Trouble)",
+			},
 		},
 	},
 })
