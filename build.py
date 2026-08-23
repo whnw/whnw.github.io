@@ -92,7 +92,8 @@ def render_tree(files: list[FileEntry], current: PurePosixPath) -> str:
             chunks.append(
                 '<li><details><summary>📁 '
                 + html.escape(name)
-                + f' <a class="open-folder" href="{url_for(child)}/">打开</a></summary>'
+                + f' <a class="open-folder" href="{url_for(child)}/">打开</a>'
+                + f' <button class="folder-download" data-download-path="{html.escape(child.as_posix(), quote=True)}">下载</button></summary>'
                 + walk(node[name], child)  # type: ignore[arg-type]
                 + "</details></li>"
             )
@@ -182,4 +183,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

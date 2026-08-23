@@ -18,6 +18,12 @@ class UnitTests(unittest.TestCase):
         self.assertIn(html.escape("<script>.txt"), rendered)
         self.assertNotIn("<script>.txt", rendered)
 
+    def test_tree_has_download_button_for_each_directory(self):
+        entry = build.FileEntry(PurePosixPath("父目录/子目录/file.txt"), 1)
+        rendered = build.page([entry], PurePosixPath("."))
+        self.assertIn('data-download-path="父目录"', rendered)
+        self.assertIn('data-download-path="父目录/子目录"', rendered)
+
     def test_markdown_html_collision(self):
         with self.assertRaisesRegex(RuntimeError, "note.html"):
             build.validate_outputs([PurePosixPath("note.md"), PurePosixPath("note.html")])
@@ -71,4 +77,3 @@ class IntegrationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

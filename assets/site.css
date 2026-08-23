@@ -13,6 +13,8 @@ main > .tree { padding: 0; }
 .tree li { margin: 7px 0; }
 summary { cursor: pointer; font-weight: 650; }
 .open-folder { margin-left: 8px; font-size: .85em; font-weight: 400; }
+.folder-download { margin-left: 7px; padding: 1px 7px; border: 1px solid #1769aa; border-radius: 5px; background: transparent; color: #1769aa; cursor: pointer; font-size: .8em; }
+.folder-download:disabled { opacity: .55; cursor: wait; }
 .file { display: flex; justify-content: space-between; gap: 18px; padding: 8px 10px; border-radius: 7px; background: white; box-shadow: 0 1px 2px #1f293714; }
 .meta { flex: none; color: #62708a; font-size: .9em; }
 article, body > section { max-width: 900px; margin: auto; }
@@ -20,4 +22,3 @@ pre { overflow: auto; padding: 12px; border-radius: 7px; background: #e9edf4; }
 img { max-width: 100%; }
 @media (prefers-color-scheme: dark) { body { background: #111827; color: #e5e7eb; } .file { background: #1f2937; } p,.meta,#download-status { color: #aab4c5; } pre { background: #1f2937; } }
 @media (max-width: 620px) { header,.file { align-items: flex-start; flex-direction: column; } .meta { padding-left: 25px; } }
-

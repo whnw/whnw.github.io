@@ -2,14 +2,14 @@
   "use strict";
   const LIMIT = 100 * 1024 * 1024;
   const CONCURRENCY = 4;
-  const button = document.querySelector("[data-download-path]");
+  const buttons = document.querySelectorAll("[data-download-path]");
   const status = document.querySelector("#download-status");
-  if (!button) return;
+  if (!buttons.length) return;
 
   const setStatus = text => { status.textContent = text; };
   const safeName = name => name.replace(/[\\/:*?"<>|]/g, "_") || "content";
 
-  button.addEventListener("click", async () => {
+  async function downloadDirectory(button) {
     button.disabled = true;
     try {
       setStatus("正在读取文件清单…");
@@ -62,5 +62,11 @@
     } finally {
       button.disabled = false;
     }
-  });
+  }
+
+  buttons.forEach(button => button.addEventListener("click", event => {
+    event.preventDefault();
+    event.stopPropagation();
+    downloadDirectory(button);
+  }));
 })();
