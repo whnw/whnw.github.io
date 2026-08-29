@@ -1,1 +1,184 @@
-hello world
+• 下面是几个典型场景。
+
+  ### 例 1：新增的普通 bool 配置项
+
+  config FEATURE_FOO
+      bool "Enable foo feature"
+
+  旧 .config 中没有 CONFIG_FEATURE_FOO。由于该选项可见、没有用户值且可以修改，会触发：
+
+  *
+  * Restart config...
+  *
+  * Reason: CONFIG_FEATURE_FOO is visible but has no user value
+  *   prompt: Enable foo feature
+  *   type: boolean; restart condition: symbol is changeable
+  Enable foo feature (FEATURE_FOO) [N/y/?]
+
+  这是最常见的情况：代码更新后新增了 Kconfig 选项，但旧配置文件里没有它。
+
+  ### 例 2：依赖条件刚刚变为可见
+
+  config NETWORKING
+      bool "Networking support"
+
+  config FEATURE_HTTP
+      bool "HTTP support"
+      depends on NETWORKING
+
+  原来：
+
+  CONFIG_NETWORKING=n
+
+  此时 FEATURE_HTTP 不可见，不会触发。
+
+  如果配置过程中将 NETWORKING 改为 y，而 .config 中没有 CONFIG_FEATURE_HTTP，下一次扫描就会发
+  现它已经可见且没有用户值：
+
+  * Reason: CONFIG_FEATURE_HTTP is visible but has no user value
+  *   prompt: HTTP support
+  *   type: boolean; restart condition: symbol is changeable
+
+  也就是说，修改一个上层选项可能让新的下层选项出现，从而需要重新进入配置。
+
+  ### 例 3：新增的字符串或整数配置
+
+  config HTTP_PORT
+      int "Default HTTP port"
+      depends on FEATURE_HTTP
+
+  当 FEATURE_HTTP=y，但旧配置中没有 CONFIG_HTTP_PORT 时：
+
+  * Reason: CONFIG_HTTP_PORT is visible but has no user value
+  *   prompt: Default HTTP port
+  *   type: integer; restart condition: symbol is changeable
+  Default HTTP port (HTTP_PORT) [0]
+
+  字符串、十六进制和整数配置也适用同样的判断，并不限于 bool。
+
+  ### 例 4：启用的 choice 没有选中项
+
+  choice
+      prompt "Select compression method"
+      default COMPRESS_GZIP
+
+  config COMPRESS_GZIP
+      bool "gzip"
+
+  config COMPRESS_LZMA
+      bool "lzma"
+
+  endchoice
+
+  如果这个 choice 当前处于启用状态，但配置里没有有效的选中项，会触发：
+
+  * Reason: <anonymous choice> is visible but has no user value
+  *   prompt: Select compression method
+  *   type: boolean; restart condition: enabled choice has no selected value
+
+  随后会要求选择：
+
+  Select compression method
+    1. gzip
+    2. lzma
+  choice[1-2?]:
+
+  这里显示 <anonymous choice>，因为 Kconfig 的 choice 本身通常没有符号名。
+
+  ### 例 5：有默认值，但没有用户值
+
+  config FEATURE_BAR
+      bool "Enable bar"
+      default y
+
+  即使计算后的默认值是 y，也不一定代表它已经有用户配置值。若 sym_has_value(sym) 仍为假，而且
+  选项可修改，仍可能触发：
+
+  * Reason: CONFIG_FEATURE_BAR is visible but has no user value
+  *   prompt: Enable bar
+  *   type: boolean; restart condition: symbol is changeable
+
+  这里“没有用户值”指配置文件或配置过程中没有明确记录用户选择，不等同于“计算后的当前值为空”。
+
+  ### 不会触发的反例
+
+  以下情况不会出现 Restart config...：
+
+  - 配置项由于 depends on 不满足而不可见。
+  - .config 中已经存在该配置项的用户值。
+  - 配置项虽然没有用户值，但当前不可修改。
+  - 菜单节点没有关联 symbol，例如纯菜单或注释。
+  - choice 没有用户值，但当前并未启用。
+
+
+
+• 推荐执行：
+
+  yes '' | make oldconfig
+
+  它会：
+
+  - 保留 .config 中已有配置
+  - 对新增或缺失的可见选项采用默认值
+  - 自动处理依赖变化后新出现的选项
+  - 最终将完整、收敛后的配置重新写入 .config
+
+  如果希望手动决定新增选项，则执行：
+
+  make oldconfig
+
+  每个新增选项都会提示选择；直接按 Enter 使用默认值。
+
+  更新完成后，可以再验证一次：
+
+  make silentoldconfig
+
+  此时不应该再出现 Restart config...。如果仍然出现，新增的原因输出会指出具体是哪个符号。
+
+  建议更新前备份：
+
+  cp .config .config.backup
+  yes '' | make oldconfig
+
+  需要注意，“包含所有选项”实际指包含当前 Kconfig 条件下所有需要记录的选项。由于 depends on 不
+  满足而不可见的选项，可能不会写入 .config；以后依赖变为满足时，仍可能作为新选项出现。
+
+  如果不需要保留当前配置，也可以完全重新生成：
+
+  make defconfig       # 全部采用 BusyBox 默认配置
+  make allnoconfig     # 尽可能全部关闭
+  make allyesconfig    # 尽可能全部启用
+
+  对于保留现有配置并避免后续触发 restart，首选：
+
+  yes '' | make oldconfig
+
+─────────────────────────────────────────────────────────────────────────────────────────────
+
+
+› 能否执行no '' | make oldconfig
+
+
+• 不可以，通常不存在 no 这个命令：
+
+  no '' | make oldconfig
+
+  一般会报：
+
+  zsh: command not found: no
+
+  如果想持续输入 n，语法是：
+
+  yes n | make oldconfig
+
+  但不推荐：遇到整数、字符串或 choice 选项时，n 可能是无效输入，导致反复询问甚至死循环。
+
+  更安全的选择：
+
+  yes '' | make oldconfig
+
+  它会对缺失选项使用各自默认值。若想把所有能够关闭的选项设为 n，使用：
+
+  make allnoconfig
+
+  不过 allnoconfig 会重建整个 .config，不会保留当前已有的启用配置。
