@@ -182,3 +182,37 @@
   make allnoconfig
 
   不过 allnoconfig 会重建整个 .config，不会保留当前已有的启用配置。
+
+
+如果希望 Codex 和各种 Copilot 场景都尽量稳定遵守，推荐使用两个入口：
+
+  your-repository/
+  ├── AGENTS.md
+  └── .github/
+      └── copilot-instructions.md
+
+  其中：
+
+  - AGENTS.md 保存完整规范，供 Codex及支持 Agent instructions 的 Copilot 使用。
+  - .github/copilot-instructions.md 保存相同规范，或明确要求读取仓库根目录的 AGENTS.md。这是
+    Copilot 官方的仓库级指令路径。GitHub 官方配置说明
+
+
+  可以复制现有规范：
+
+  mkdir -p ~/.copilot
+  cp AGENTS.md ~/.copilot/copilot-instructions.md
+
+  Copilot CLI 还支持拆分形式：
+
+  ~/.copilot/instructions/**/*.instructions.md
+
+  官方说明见 Copilot CLI 自定义指令
+  (https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions)。
+
+  需要注意：
+
+  - ~/.copilot/copilot-instructions.md：对本机 Copilot CLI 的所有项目生效。
+  - VS Code、Visual Studio、GitHub.com Copilot 不保证读取该用户目录文件。
+  - IDE 和云端 Copilot 最稳妥的方式仍是在每个仓库放置 .github/copilot-instructions.md
+    或受支持场景下的根目录 AGENTS.md。各客户端支持范围
