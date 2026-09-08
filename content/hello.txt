@@ -223,115 +223,248 @@
 
 
 
-根因是：Copilot CLI 在 Ubuntu 中运行，但颜色最终由 Windows Terminal 渲染。你只把背景改成白色，而 Copilot 仍使用深色配色，因此部分函数名、变量名继续输出白色。
+那就不是 tmux，而是 Copilot CLI 通过 SSH 获取不到完整的 Windows Terminal 调色板，github 主题因此回退到暗色。这是 Copilot CLI 当前的限制/缺陷，并非你的 Windows Terminal 配错了。
 
-建议按以下顺序处理。
+先按下面顺序处理。
 
-1. 更新 Ubuntu 中的 Copilot CLI
+1. 改用跟随终端的主题
 
-这是远程 Ubuntu 里的版本，不是 Windows 或 macOS 中的版本：
+在 Copilot CLI 中执行：
 
-copilot version
-copilot update
+/settings theme default
 
-如果通过 npm 安装：
+退出并重新启动：
 
-npm install -g @github/copilot@latest
+/quit
+copilot
 
-新版改进了 GitHub 主题对浅色终端的适配。
+新版正确写法是 /settings theme；修改会保存到远端 Ubuntu 的 ~/.copilot/settings.json。GitHub 官方设置说明
 
-2. 固定使用 GitHub 主题
+确认配置：
 
-进入 Copilot 后执行：
+/settings show theme
 
-/theme github
+应该显示：
 
-如果该命令没有直接生效，执行：
+theme = default
 
-/theme
+github 主题会主动绘制 GitHub 风格背景；default 更适合你这种“终端本身是亮色”的情况。
 
-然后在界面里选择 github。也可以使用：
+2. 检查 SSH 颜色能力
 
-/settings theme github
+退出 Copilot，在 Ubuntu shell 中执行：
 
-主题会保存在远程 Ubuntu 的：
+printf 'TERM=%s\nCOLORTERM=%s\nTERM_PROGRAM=%s\nSSH_TTY=%s\n' \
+    "$TERM" "$COLORTERM" "$TERM_PROGRAM" "$SSH_TTY"
 
-~/.copilot/settings.json
+copilot --print-debug-info
 
-可以检查：
+尤其关注：
 
-grep -n '"theme"' ~/.copilot/settings.json
+TERM=xterm-256color
+COLORTERM=truecolor
+isRemoteTerminal()=true
 
-应该类似：
+如果 TERM 是 xterm、xterm-color 或 dumb，先测试：
 
-{
-  "theme": "github"
+TERM=xterm-256color COLORTERM=truecolor copilot
+
+如果这样恢复亮色，可以为 Copilot 单独建立函数，避免全局修改 TERM。加入远端 Ubuntu 的 ~/.bashrc：
+
+copilot-wt() {
+    TERM=xterm-256color \
+    COLORTERM=truecolor \
+    command copilot "$@"
 }
 
-当前官方支持的主题包括 default、github、dim、high-contrast 和 colorblind；其中新版 github 主题能够针对浅色终端使用 GitHub Primer 浅色调色板。官方命令参考 · 配置文件参考
+加载配置：
 
-3. 先设置 Windows Terminal，再启动 Copilot
+source ~/.bashrc
 
-Copilot 启动时会探测终端背景。因此应按这个顺序：
+以后运行：
 
-Windows Terminal 选择完整的 OneDark Light 配色方案。
-关闭当前 Copilot。
-最好重新打开一个 Windows Terminal 标签页。
-SSH 登录 Ubuntu。
-再运行 copilot。
+copilot-wt
+3. 如果仍然变黑
 
-不要在 Copilot 已经启动之后单独修改背景色，因为它可能不会重新计算配色。
+这说明不是环境变量，而是 OSC 4/10/11 调色板查询经过 OpenSSH 后没有被 Copilot 正确收集。当前 Copilot 的 theme 已经没有可用的“强制 light”选项，只有：
 
-4. 检查 SSH 终端能力
+default
+github
+dim
+high-contrast
+colorblind
 
-在 Ubuntu 中运行：
+这一点由当前官方配置参考确认。Copilot CLI 配置参考
 
-echo "$TERM"
-tput colors
+此时唯一稳定保持 Windows Terminal 白色背景的方法是：
 
-推荐结果：
+copilot --no-color
 
-xterm-256color
-256
-
-如果 $TERM 是 dumb、vt100，或者颜色数只有 8，可临时测试：
-
-TERM=xterm-256color copilot
-
-如果这样显示正常，再加入 Ubuntu 的 ~/.bashrc：
-
-export TERM=xterm-256color
-
-不过如果当前已经是 xterm-256color，就不要重复设置。
-
-5. 最稳妥的无彩色方案
-
-如果 GitHub 主题仍有个别白字，这是 Copilot CLI 已报告过的浅色主题兼容问题。可以完全禁用 ANSI 颜色：
-
-NO_COLOR=1 copilot
-
-确认显示正常后，在 Ubuntu 的 ~/.bashrc 中添加：
+可以设置一个仅针对 Copilot 的包装函数：
 
 copilot-light() {
-    NO_COLOR=1 command copilot "$@"
+    command copilot --no-color "$@"
+}
+
+这会保留 Windows Terminal 的 GitHub 亮色背景，但 Copilot 输出将不再使用彩色高亮。
+
+4. 黑色背景退出后没有恢复
+
+执行：
+
+printf '\033]110\033\\\033]111\033\\'
+
+这会让 Windows Terminal 恢复配置文件中原来的前景色和背景色。
+
+我建议你先执行：
+
+/settings theme default
+
+如果仍然黑，再把下面两段输出发给我，我可以继续判断是 TERM 降级还是 Windows Terminal 调色板查询没有穿过 SSH：
+
+copilot --version
+copilot --print-debug-info
+如果theme改成default，确实可以背景是白色的，但是有些输出内容是白色字体，完全看不到，比如让它介绍一个模块时，输出的函数名时白色字体
+
+可以解决。继续使用 Copilot 的 default 主题，但给 Windows Terminal 建一个专用浅色方案，把 ANSI 的 white、brightWhite 映射成深灰色。你遇到的是 Copilot 浅色模式下部分强调文本颜色不合理的问题，类似的硬编码颜色问题已有反馈：github/copilot-cli#3750。
+
+在 Windows Terminal 按 Ctrl+,，打开 JSON 设置，在 "schemes" 数组中加入：
+
+{
+  "name": "GitHub Light Copilot",
+  "background": "#FFFFFF",
+  "foreground": "#24292F",
+  "cursorColor": "#24292F",
+  "selectionBackground": "#B6D7FF",
+
+  "black": "#24292F",
+  "red": "#CF222E",
+  "green": "#1A7F37",
+  "yellow": "#7D4E00",
+  "blue": "#0969DA",
+  "purple": "#8250DF",
+  "cyan": "#1B7C83",
+  "white": "#57606A",
+
+  "brightBlack": "#6E7781",
+  "brightRed": "#A40E26",
+  "brightGreen": "#116329",
+  "brightYellow": "#633C01",
+  "brightBlue": "#0550AE",
+  "brightPurple": "#6639BA",
+  "brightCyan": "#096B72",
+  "brightWhite": "#24292F"
+}
+
+然后让 SSH 所在的 Windows Terminal profile 使用它：
+
+"profiles": {
+  "defaults": {
+    "colorScheme": "GitHub Light Copilot"
+  }
+}
+
+如果只想改现有 GitHub 主题，核心就是这两项：
+
+"white": "#57606A",
+"brightWhite": "#24292F"
+
+Windows Terminal 支持这样重新定义完整的 ANSI 调色板，建议复制成新主题，不要修改只读的内置 defaults.json。Windows Terminal 自定义配色文档
+
+如果改完后函数名依然纯白，说明 Copilot 输出的是不可被调色板覆盖的 24 位 RGB 白色。可在 Ubuntu 先测试强制 16 色：
+
+env -u COLORTERM FORCE_COLOR=1 TERM=xterm-color copilot
+
+确认有效后，在 ~/.bashrc 添加：
+
+copilot-light() {
+    env -u COLORTERM FORCE_COLOR=1 TERM=xterm-color copilot "$@"
 }
 
 以后运行：
 
 copilot-light
 
-这种方式会失去语法高亮，但能保证白底下所有内容可读。建议优先尝试 /theme github，NO_COLOR=1 作为兜底。
+最后的兜底方案是：
 
+copilot --no-color
 
+它会完全使用 Windows Terminal 的默认深色前景，肯定不会出现白字消失，但会失去语法着色。--no-color 是 Copilot CLI 官方支持的参数：命令行参考。
 
+能在onedark light主题的基础上调整吗
 
+可以，而且这是最合适的方案：复制现有的 OneDark Light，只调整白色相关的 ANSI 色值，其他配色全部保留。
 
+在 Windows Terminal 的 settings.json 中找到：
 
+{
+    "name": "OneDark Light",
+    ...
+}
 
+复制一份并改名，例如：
 
+{
+    "name": "OneDark Light Copilot",
 
+    "background": "#FAFAFA",
+    "foreground": "#383A42",
+    "cursorColor": "#383A42",
+    "selectionBackground": "#BFCEFF",
 
+    "black": "#383A42",
+    "red": "#E45649",
+    "green": "#50A14F",
+    "yellow": "#986801",
+    "blue": "#4078F2",
+    "purple": "#A626A4",
+    "cyan": "#0184BC",
 
+    "white": "#5C6370",
+    "brightBlack": "#696C77",
+    "brightRed": "#CA1243",
+    "brightGreen": "#50A14F",
+    "brightYellow": "#986801",
+    "brightBlue": "#4078F2",
+    "brightPurple": "#A626A4",
+    "brightCyan": "#0184BC",
+    "brightWhite": "#383A42"
+}
 
+关键变化实际上只有：
 
+"white": "#5C6370",
+"brightWhite": "#383A42"
 
+然后让你用于 SSH 的 Terminal profile 使用新主题：
+
+"profiles": {
+    "defaults": {
+        "colorScheme": "OneDark Light Copilot"
+    }
+}
+
+Copilot CLI 中继续选择：
+
+/theme
+
+然后选 default。
+
+这样：
+
+背景保持 OneDark Light 的浅色背景
+普通前景保持深灰色
+Copilot 输出的 ANSI 白色、亮白色会被映射成深灰色
+其他红、绿、蓝、紫等 OneDark Light 配色不变
+
+如果改完后仍有少量函数名是纯白色，说明那部分使用了 24 位真彩色白色，Windows Terminal 的 white 配置无法覆盖。可以测试：
+
+env -u COLORTERM FORCE_COLOR=1 TERM=xterm-color copilot
+
+如果这个命令解决了，再给 Ubuntu 的 ~/.bashrc 添加：
+
+copilot-light() {
+    env -u COLORTERM FORCE_COLOR=1 TERM=xterm-color copilot "$@"
+}
+
+以后运行 copilot-light 即可。建议先只修改 white 和 brightWhite，大概率已经足够。
