@@ -472,23 +472,39 @@ copilot-light() {
 
 # Coding cockpit: neovim + copilot + terminal in tmux
 nic() {
-  local session_name="${1:-$(basename "$PWD")}"
+    local session_name="${1:-$(basename "$PWD")}"
 
-  if [[ -n "$TMUX" ]]; then
-    echo "Already in a tmux session. Detach first or run from outside tmux."
-    return 1
-  fi
+    if [[ -n "$TMUX" ]]; then
+        echo "Already in a tmux session. Detach first or run from outside tmux."
+        return 1
+    fi
 
-  if tmux has-session -t "$session_name" 2>/dev/null; then
+    if tmux has-session -t "$session_name" 2>/dev/null; then
+        tmux attach-session -t "$session_name"
+        return
+    fi
+
+    # 创建 session，当前 pane 作为 nvim
+    tmux new-session -d -s "$session_name"  -c "$PWD"  -x "$(tput cols)"  -y "$(tput lines)"
+
+    # 记录第一个 pane
+    local nvim_pane
+    nvim_pane=$(tmux display-message -p -t "$session_name" '#{pane_id}')
+
+    # 从 nvim pane 下方创建 shell
+    local shell_pane
+    shell_pane=$(tmux split-window  -v  -t "$nvim_pane"  -c "$PWD"  -l 20%  -P -F '#{pane_id}')
+
+    # 在 nvim pane 右侧创建 copilot
+    local copilot_pane
+    copilot_pane=$(tmux split-window  -h  -t "$nvim_pane"  -c "$PWD"  -l 30%  -P -F '#{pane_id}')
+
+    # 启动程序
+    tmux send-keys -t "$nvim_pane" 'nvim' C-m
+    tmux send-keys -t "$copilot_pane" 'copilot' C-m
+
+    # 最后回到 nvim
+    tmux select-pane -t "$nvim_pane"
+
     tmux attach-session -t "$session_name"
-    return
-  fi
-
-  tmux new-session -d -s "$session_name" -c "$PWD" -x "$(tput cols)" -y "$(tput lines)"
-  tmux split-window -v -t "$session_name" -c "$PWD" -l 20%
-  tmux split-window -h -t "$session_name":1.1 -c "$PWD" -l 30%
-  tmux send-keys -t "$session_name":1.1 'nvim' C-m
-  tmux send-keys -t "$session_name":1.2 'copilot' C-m
-  tmux select-pane -t "$session_name":1.1
-  tmux attach-session -t "$session_name"
 }
