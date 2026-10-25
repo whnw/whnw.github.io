@@ -508,3 +508,298 @@ nic() {
 
     tmux attach-session -t "$session_name"
 }
+
+
+
+macOS / Linux：~/.vscode/extensions/
+Windows：%USERPROFILE%\.vscode\extensions\
+VS Code Insiders：通常是 ~/.vscode-insiders/extensions/
+
+
+{
+    "workbench.colorTheme": "Light 2026",
+    "files.autoSave": "onFocusChange",
+    "editor.insertSpaces": false,
+    "editor.detectIndentation": true,
+    "editor.tabSize": 4,
+    "editor.autoClosingDelete": "always",
+    "editor.lineNumbers": "relative",
+    "editor.cursorSurroundingLines": 3,
+    "editor.renderWhitespace": "boundary",
+    "codeTelescope.layout.promptFontSize": 12,
+    "codeTelescope.layout.resultsFontSize": 12,
+    "codeTelescope.layout.previewFontSize": 12,
+    "vim.useSystemClipboard": true,
+    "vim.leader": ";",
+    "vim.normalModeKeyBindingsNonRecursive": [
+        {
+            "before": [";", "e"],
+            "commands": ["workbench.action.toggleSidebarVisibility"]
+        },
+        {
+            "before": [";", "f", "f"],
+            "commands": ["workbench.action.quickOpen"]
+        },
+        {
+            "before": [";", "f", "g"],
+            "commands": ["code-telescope.fuzzy.wsText"]
+        },
+        {
+            "before": [";", "h", "r"],
+            "commands": [ "git.revertSelectedRanges" ]
+        },
+        {
+            "before": [";", "h", "b"],
+            "commands": ["git.blame.toggleEditorDecoration"]
+        },
+        {
+            "before": [";", "h", "p"],
+            "commands": ["editor.action.dirtydiff.next"]
+        },
+        {
+            "before": [";", "h", "R"],
+            "commands": [
+                "editor.action.selectAll",
+                "git.revertSelectedRanges"
+            ]
+        },
+        {
+            "before": ["]", "c"],
+            "commands": ["workbench.action.editor.nextChange"]
+        },
+        {
+            "before": ["[", "c"],
+            "commands": ["workbench.action.editor.previousChange"]
+        },
+        {
+            "before": ["g", "d"],
+            "commands": ["editor.action.revealDefinition"]
+        },
+        {
+            "before": [";", "w"],
+            "commands": ["workbench.action.files.save"]
+        },
+        {
+            "before": [";", "w", "w"],
+            "commands": ["workbench.action.files.save"]
+        },
+        {
+            "before": [";", "q"],
+            "commands": ["workbench.action.closeActiveEditor"]
+        },
+        {
+            "before": [";", "b", "d"],
+            "commands": ["workbench.action.closeActiveEditor"]
+        },
+        {
+            "before": [";", "x", "x"],
+            "commands": ["workbench.actions.view.problems"]
+        },
+        {
+            "before": [";", "g", "g"],
+            "commands": ["workbench.view.scm"]
+        },
+        {
+            "before": ["<S-Left>"],
+            "commands": ["workbench.action.previousEditor"]
+        },
+        {
+            "before": ["<S-Right>"],
+            "commands": ["workbench.action.nextEditor"]
+        },
+        {
+            "before": ["<Space>", "m"],
+            "commands": ["workbench.action.openRecent"]
+        },
+        {
+            "before": [";", "f", "o"],
+            "commands": ["editor.action.formatSelection"]
+        },
+    ],
+    "vim.insertModeKeyBindingsNonRecursive": [
+        {
+            "before": ["<Esc>"],
+            "after": ["<Esc>"],
+            "commands": ["workbench.action.files.save"]
+        },
+        {
+            "before": ["<C-[>"],
+            "after": ["<Esc>"],
+            "commands": ["workbench.action.files.save"]
+        },
+        {
+            "before": [";", "t"],
+            "after": ["\"", "\"", "<Esc>", "i"]
+        },
+        {
+            "before": [";", "g"],
+            "after": ["<CR>", "{", "}", "<Esc>", "i", "<CR>", "<Esc>", "O"]
+        },
+        {
+            "before": [";", "e"],
+            "after": ["<Esc>", "l", "a"]
+        },
+        {
+            "before": [";", "d"],
+            "after": [":"]
+        },
+        {
+            "before": [";", "v"],
+            "after": ["<"]
+        },
+        {
+            "before": [";", "f"],
+            "after": ["(", ")", "<Esc>", "i"]
+        },
+        {
+            "before": [";", "a"],
+            "after": ["+"]
+        },
+        {
+            "before": [";", "s"],
+            "after": ["_"]
+        },
+        {
+            "before": [";", "S"],
+            "after": ["_"]
+        },
+        {
+            "before": [";", "b"],
+            "after": ["-", ">"]
+        },
+        {
+            "before": [";", "r"],
+            "after": ["&"]
+        },
+        {
+            "before": [";", "q"],
+            "after": ["!"]
+        },
+    ],
+    "extensions.experimental.affinity": {
+        "asvetliakov.vscode-neovim": 1
+    },
+    "vscode-neovim.neovimExecutablePaths.darwin": "/opt/homebrew/bin/nvim",
+    "vscode-neovim.neovimClean": true,
+    "vscode-neovim.compositeKeys": {
+        ";d": {
+            "command": "vscode-neovim.lua",
+            "args": [["vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(':', true, false, true), 'n', false)"]]
+        },
+        ";t": {
+            "command": "vscode-neovim.lua",
+            "args": [["vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(string.char(34, 34) .. '<Esc>i', true, false, true), 'n', false)"]]
+        },
+        ";f": {
+            "command": "vscode-neovim.lua",
+            "args": [["vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('()<Esc>i', true, false, true), 'n', false)"]]
+        },
+        ";g": {
+            "command": "vscode-neovim.lua",
+            "args": [["vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<CR>{}<Esc>i<CR><Esc>O', true, false, true), 'n', false)"]]
+        },
+        ";e": {
+            "command": "vscode-neovim.lua",
+            "args": [["vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>la', true, false, true), 'n', false)"]]
+        },
+        ";v": {
+            "command": "vscode-neovim.lua",
+            "args": [["vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<', true, false, true), 'n', false)"]]
+        },
+        ";a": {
+            "command": "vscode-neovim.lua",
+            "args": [["vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('+', true, false, true), 'n', false)"]]
+        },
+        ";s": {
+            "command": "vscode-neovim.lua",
+            "args": [["vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('_', true, false, true), 'n', false)"]]
+        },
+        ";S": {
+            "command": "vscode-neovim.lua",
+            "args": [["vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('_', true, false, true), 'n', false)"]]
+        },
+        ";b": {
+            "command": "vscode-neovim.lua",
+            "args": [["vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('->', true, false, true), 'n', false)"]]
+        },
+        ";r": {
+            "command": "vscode-neovim.lua",
+            "args": [["vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('&', true, false, true), 'n', false)"]]
+        },
+        ";q": {
+            "command": "vscode-neovim.lua",
+            "args": [["vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('!', true, false, true), 'n', false)"]]
+        }
+    },
+    "vscode-neovim.afterInitConfig": [
+        "lua << EOF",
+        "vim.g.mapleader = ';'",
+        "vim.g.maplocalleader = ';'",
+        "vim.opt.clipboard = 'unnamedplus'",
+        "local function vscode_call(command)",
+        "  return function() require('vscode').call(command) end",
+        "end",
+        "local normal_mappings = {",
+        "  {'<leader>e', 'workbench.action.toggleSidebarVisibility'},",
+        "  {'<leader>ff', 'workbench.action.quickOpen'},",
+        "  {'<leader>fg', 'code-telescope.fuzzy.wsText'},",
+        "  {'<leader>hr', 'git.revertSelectedRanges'},",
+        "  {'<leader>hb', 'git.blame.toggleEditorDecoration'},",
+        "  {'<leader>hp', 'editor.action.dirtydiff.next'},",
+        "  {']c', 'workbench.action.editor.nextChange'},",
+        "  {'[c', 'workbench.action.editor.previousChange'},",
+        "  {'gd', 'editor.action.revealDefinition'},",
+        "  {'<leader>w', 'workbench.action.files.save'},",
+        "  {'<leader>ww', 'workbench.action.files.save'},",
+        "  {'<leader>q', 'workbench.action.closeActiveEditor'},",
+        "  {'<leader>bd', 'workbench.action.closeActiveEditor'},",
+        "  {'<leader>xx', 'workbench.actions.view.problems'},",
+        "  {'<leader>gg', 'workbench.view.scm'},",
+        "  {'<S-Left>', 'workbench.action.previousEditor'},",
+        "  {'<S-Right>', 'workbench.action.nextEditor'},",
+        "  {'<Space>m', 'workbench.action.openRecent'},",
+        "  {'<leader>fo', 'editor.action.formatSelection'},",
+        "}",
+        "for _, mapping in ipairs(normal_mappings) do",
+        "  vim.keymap.set('n', mapping[1], vscode_call(mapping[2]))",
+        "end",
+        "vim.keymap.set('n', '<leader>hR', function()",
+        "  require('vscode').call('editor.action.selectAll')",
+        "  require('vscode').call('git.revertSelectedRanges')",
+        "end)",
+        "local insert_pairs = {",
+        "  ['('] = ')',",
+        "  ['['] = ']',",
+        "  ['{'] = '}',",
+        "  ['\"'] = '\"',",
+        "  [\"'\"] = \"'\",",
+        "  ['`'] = '`',",
+        "  ['<'] = '>',",
+        "}",
+        "vim.keymap.set('i', '<BS>', function()",
+        "  local line = vim.api.nvim_get_current_line()",
+        "  local col = vim.fn.col('.')",
+        "  local left = line:sub(col - 1, col - 1)",
+        "  local right = line:sub(col, col)",
+        "  if insert_pairs[left] == right then return '<BS><Del>' end",
+        "  return '<BS>'",
+        "end, { expr = true, replace_keycodes = true })",
+        "vim.api.nvim_create_autocmd('InsertLeave', {",
+        "  callback = function()",
+        "    require('vscode').action('workbench.action.files.save')",
+        "  end",
+        "})",
+        "EOF"
+    ],
+    "scm.diffDecorations": "all",
+    "git.openRepositoryInParentFolders": "never",
+    "makefile.configureOnOpen": true,
+    "git.blame.editorDecoration.enabled": false,
+    "security.workspace.trust.untrustedFiles": "newWindow",
+    "github.copilot.enable": {
+        "*": false,
+        "plaintext": false,
+        "markdown": false,
+        "scminput": false
+    }
+}
